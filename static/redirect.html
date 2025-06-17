@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirect to Rhylthyme D3 Visualizer</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous">
+    <!-- Red Hat Fonts -->
+    <link rel="stylesheet" href="css/redhat-fonts.css">
+    <style>
+        /* PatternFly Color Variables */
+        :root {
+            --pf-global--primary-color--100: #0066cc;
+            --pf-global--primary-color--200: #004080;
+            --pf-global--secondary-color--100: #6a6e73;
+            --pf-global--success-color--100: #3e8635;
+            --pf-global--info-color--100: #2b9af3;
+            --pf-global--warning-color--100: #f0ab00;
+            --pf-global--danger-color--100: #c9190b;
+            --pf-global--BackgroundColor--100: #ffffff;
+            --pf-global--BackgroundColor--200: #f0f0f0;
+            --pf-global--Color--100: #151515;
+            --pf-global--Color--200: #6a6e73;
+            --pf-global--link--Color: #0066cc;
+            --pf-global--BorderRadius--sm: 3px;
+            --pf-global--BorderColor--100: #d2d2d2;
+            --pf-global--BoxShadow--md: 0 0.25rem 0.5rem 0rem rgba(3, 3, 3, 0.12), 0 0 0.25rem 0 rgba(3, 3, 3, 0.06);
+            
+            /* Font family variables */
+            --pf-global--FontFamily--sans-serif: 'Red Hat Text', Arial, sans-serif;
+            --pf-global--FontFamily--heading: 'Red Hat Display', Arial, sans-serif;
+            --pf-global--FontFamily--monospace: 'Red Hat Mono', monospace;
+        }
+
+        body {
+            font-family: var(--pf-global--FontFamily--sans-serif);
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            line-height: 1.5;
+            color: var(--pf-global--Color--100);
+            background-color: var(--pf-global--BackgroundColor--200);
+        }
+        
+        h1, h2, h3 {
+            font-family: var(--pf-global--FontFamily--heading);
+            color: var(--pf-global--Color--100);
+        }
+        
+        .card {
+            border: 1px solid var(--pf-global--BorderColor--100);
+            border-radius: var(--pf-global--BorderRadius--sm);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: var(--pf-global--BoxShadow--md);
+            background-color: var(--pf-global--BackgroundColor--100);
+        }
+        
+        .button {
+            font-family: var(--pf-global--FontFamily--sans-serif);
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            background-color: var(--pf-global--primary-color--100);
+            color: white;
+            border-radius: var(--pf-global--BorderRadius--sm);
+            text-decoration: none;
+            margin-top: 1rem;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .button i {
+            margin-right: 0.5rem;
+        }
+        
+        .button:hover {
+            background-color: var(--pf-global--primary-color--200);
+        }
+        
+        .button.success {
+            background-color: var(--pf-global--success-color--100);
+        }
+        
+        code {
+            font-family: var(--pf-global--FontFamily--monospace);
+            background-color: var(--pf-global--BackgroundColor--200);
+            padding: 0.2rem 0.4rem;
+            border-radius: var(--pf-global--BorderRadius--sm);
+            font-size: 0.9em;
+        }
+        
+        .code-block {
+            background-color: var(--pf-global--BackgroundColor--200);
+            padding: 1rem;
+            border-radius: var(--pf-global--BorderRadius--sm);
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Rhylthyme D3 Visualizer with PatternFly</h1>
+    
+    <div class="card">
+        <h2>Quick Start</h2>
+        <p>To use the visualizer, you need to specify a program file. Use one of the examples below or create your own.</p>
+        
+        <h3>Example Programs</h3>
+        <ul>
+            <li>
+                <a href="/?program_file=/Users/leipzig/Documents/dev/rhylthyme/examples/breakfast_schedule.json" class="button"><i class="fas fa-utensils" aria-hidden="true"></i> Breakfast Schedule</a>
+            </li>
+            <li>
+                <a id="custom-file-link" href="#" class="button success"><i class="fas fa-file" aria-hidden="true"></i> Select Custom File</a>
+            </li>
+        </ul>
+    </div>
+    
+    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-info-circle text-blue-500 text-lg"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                    <strong>Note:</strong> The web server visualization is deprecated. 
+                    Use the new integrated web visualizer for better performance and features.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-gray-600 mb-6">
+        The server-based visualization has been replaced with a static HTML generator that creates
+        self-contained visualization files. Use one of the following methods:
+    </p>
+
+    <div class="grid md:grid-cols-2 gap-6">
+        <div class="bg-gray-50 rounded-lg p-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                <i class="fas fa-terminal text-blue-500 mr-2"></i>
+                Command Line
+            </h3>
+            <div class="space-y-3">
+                <div>
+                    <h4 class="font-medium text-gray-700 mb-2">Using CLI:</h4>
+                    <pre class="code-block"><code>rhylthyme visualize /path/to/your/program.json</code></pre>
+                </div>
+                <div>
+                    <h4 class="font-medium text-gray-700 mb-2">Using Python module:</h4>
+                    <pre class="code-block"><code>python -m rhylthyme.web_visualizer /path/to/your/program.json</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('custom-file-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            const programFile = prompt('Enter the full path to your program file:');
+            if (programFile) {
+                window.location.href = `/?program_file=${encodeURIComponent(programFile)}`;
+            }
+        });
+    </script>
+</body>
+</html> 

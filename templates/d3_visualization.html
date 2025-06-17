@@ -1,0 +1,1800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rhylthyme D3 Visualizer</title>
+    <!-- D3.js for visualization -->
+    <script src="https://d3js.org/d3.v3.min.js"></script>
+    
+    <!-- PatternFly Core -->
+    <link rel="stylesheet" href="https://unpkg.com/@patternfly/patternfly/patternfly.css" crossorigin="anonymous">
+    
+    <!-- PatternFly Chart Styles -->
+    <link rel="stylesheet" href="https://unpkg.com/@patternfly/patternfly/patternfly-charts.css" crossorigin="anonymous">
+    
+    <!-- PatternFly React Styles -->
+    <link rel="stylesheet" href="https://unpkg.com/@patternfly/react-styles/css/variables.css" crossorigin="anonymous">
+    
+    <!-- PatternFly Scripts -->
+    <script src="https://unpkg.com/@patternfly/pfe-core/dist/index.umd.min.js"></script>
+    
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" crossorigin="anonymous">
+    
+    <!-- Red Hat Fonts -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/redhat-fonts.css') }}">
+    
+    <style>
+        :root {
+            /* PatternFly Global Theme Colors */
+            --pf-global--primary-color--100: #0066cc;
+            --pf-global--primary-color--200: #004080;
+            --pf-global--secondary-color--100: #6a6e73;
+            --pf-global--default-color--100: #73bcf7;
+            --pf-global--default-color--200: #2b9af3;
+            --pf-global--default-color--300: #0066cc;
+            --pf-global--success-color--100: #3e8635;
+            --pf-global--success-color--200: #1e4f18;
+            --pf-global--info-color--100: #2b9af3;
+            --pf-global--info-color--200: #0066cc;
+            --pf-global--warning-color--100: #f0ab00;
+            --pf-global--warning-color--200: #795600;
+            --pf-global--danger-color--100: #c9190b;
+            --pf-global--danger-color--200: #a30000;
+            --pf-global--danger-color--300: #470000;
+            
+            /* PatternFly Active States */
+            --pf-global--active-color--100: #06c;
+            --pf-global--active-color--200: #004080;
+            --pf-global--active-color--300: #002952;
+            --pf-global--active-color--400: #001223;
+            
+            /* PatternFly Border Colors */
+            --pf-global--BorderColor--100: #d2d2d2;
+            --pf-global--BorderColor--200: #8a8d90;
+            --pf-global--BorderColor--300: #ededed;
+            --pf-global--BorderColor--dark-100: #d2d2d2;
+            
+            /* PatternFly Focus States */
+            --pf-global--focus-color--100: #06c;
+            --pf-global--focus-color--200: #004080;
+            
+            /* PatternFly Disabled States */
+            --pf-global--disabled-color--100: #6a6e73;
+            --pf-global--disabled-color--200: #d2d2d2;
+            --pf-global--disabled-color--300: #f0f0f0;
+            
+            /* PatternFly Background Colors */
+            --pf-global--BackgroundColor--100: #ffffff;
+            --pf-global--BackgroundColor--200: #f0f0f0;
+            --pf-global--BackgroundColor--light-100: #ffffff;
+            --pf-global--BackgroundColor--light-200: #fafafa;
+            --pf-global--BackgroundColor--light-300: #f0f0f0;
+            --pf-global--BackgroundColor--dark-100: #151515;
+            --pf-global--BackgroundColor--dark-200: #3c3f42;
+            --pf-global--BackgroundColor--dark-300: #212427;
+            --pf-global--BackgroundColor--dark-400: #4f5255;
+            
+            /* PatternFly Text Colors */
+            --pf-global--Color--100: #151515;
+            --pf-global--Color--200: #6a6e73;
+            --pf-global--Color--300: #3c3f42;
+            --pf-global--Color--400: #8a8d90;
+            --pf-global--Color--light-100: #ffffff;
+            --pf-global--Color--light-200: #f0f0f0;
+            --pf-global--Color--light-300: #d2d2d2;
+            --pf-global--Color--dark-100: #151515;
+            --pf-global--Color--dark-200: #6a6e73;
+            
+            /* PatternFly Link Colors */
+            --pf-global--link--Color: #0066cc;
+            --pf-global--link--Color--hover: #004080;
+            --pf-global--link--Color--light: #2b9af3;
+            --pf-global--link--Color--light--hover: #73bcf7;
+            --pf-global--link--Color--dark: #0066cc;
+            --pf-global--link--Color--dark--hover: #004080;
+            
+            /* PatternFly Box Shadow */
+            --pf-global--BoxShadow--sm: 0 0.0625rem 0.125rem 0 rgba(3, 3, 3, 0.12), 0 0 0.125rem 0 rgba(3, 3, 3, 0.06);
+            --pf-global--BoxShadow--md: 0 0.25rem 0.5rem 0rem rgba(3, 3, 3, 0.12), 0 0 0.25rem 0 rgba(3, 3, 3, 0.06);
+            --pf-global--BoxShadow--lg: 0 0.5rem 1rem 0 rgba(3, 3, 3, 0.16), 0 0 0.375rem 0 rgba(3, 3, 3, 0.08);
+            --pf-global--BoxShadow--xl: 0 1rem 2rem 0 rgba(3, 3, 3, 0.16), 0 0 0.5rem 0 rgba(3, 3, 3, 0.1);
+            
+            /* PatternFly Border Radius */
+            --pf-global--BorderRadius--sm: 3px;
+            --pf-global--BorderRadius--md: 6px;
+            --pf-global--BorderRadius--lg: 12px;
+            
+            /* PatternFly Font Weights */
+            --pf-global--FontWeight--light: 300;
+            --pf-global--FontWeight--normal: 400;
+            --pf-global--FontWeight--semi-bold: 500;
+            --pf-global--FontWeight--bold: 600;
+            
+            /* Red Hat Font Settings */
+            --pf-global--FontFamily--sans-serif: 'Red Hat Text', Arial, sans-serif;
+            --pf-global--FontFamily--heading: 'Red Hat Display', Arial, sans-serif;
+            --pf-global--FontFamily--monospace: 'Red Hat Mono', monospace;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--pf-global--BackgroundColor--light-300);
+            font-family: var(--pf-global--FontFamily--sans-serif);
+            color: var(--pf-global--Color--100);
+        }
+        
+        .pf-c-page {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .pf-c-page__header {
+            background-color: var(--pf-global--BackgroundColor--dark-100);
+            color: var(--pf-global--Color--light-100);
+            padding: 1rem;
+        }
+        
+        .pf-c-page__main {
+            flex: 1;
+            padding: 1rem;
+        }
+        
+        .pf-c-card {
+            background-color: var(--pf-global--BackgroundColor--100);
+            box-shadow: var(--pf-global--BoxShadow--sm);
+            border-radius: var(--pf-global--BorderRadius--sm);
+            margin-bottom: 1rem;
+            padding: 1rem;
+        }
+        
+        .pf-c-title {
+            font-family: var(--pf-global--FontFamily--heading);
+            font-weight: var(--pf-global--FontWeight--semi-bold);
+            margin-bottom: 1rem;
+        }
+        
+        .pf-c-button {
+            display: inline-block;
+            padding: 0.375rem 0.75rem;
+            font-size: 1rem;
+            font-weight: 400;
+            font-family: var(--pf-global--FontFamily--sans-serif);
+            line-height: 1.5;
+            text-align: center;
+            white-space: nowrap;
+            vertical-align: middle;
+            border: 1px solid transparent;
+            border-radius: var(--pf-global--BorderRadius--sm);
+            cursor: pointer;
+            margin-right: 0.5rem;
+        }
+        
+        .pf-c-button.pf-m-primary {
+            background-color: var(--pf-global--primary-color--100);
+            color: var(--pf-global--Color--light-100);
+        }
+        
+        .pf-c-button.pf-m-primary:hover {
+            background-color: var(--pf-global--primary-color--200);
+        }
+        
+        .pf-c-button.pf-m-secondary {
+            background-color: transparent;
+            border-color: var(--pf-global--primary-color--100);
+            color: var(--pf-global--primary-color--100);
+        }
+        
+        .pf-c-button.pf-m-secondary:hover {
+            background-color: rgba(0, 102, 204, 0.1);
+        }
+        
+        .pf-c-button.pf-m-danger {
+            background-color: var(--pf-global--danger-color--100);
+            color: var(--pf-global--Color--light-100);
+        }
+        
+        .pf-c-button.pf-m-success {
+            background-color: var(--pf-global--success-color--100);
+            color: var(--pf-global--Color--light-100);
+        }
+        
+        .pf-c-button.pf-m-warning {
+            background-color: var(--pf-global--warning-color--100);
+            color: var(--pf-global--Color--dark-100);
+        }
+        
+        .pf-c-button.pf-m-info {
+            background-color: var(--pf-global--info-color--100);
+            color: var(--pf-global--Color--light-100);
+        }
+        
+        .pf-c-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pf-c-button-group {
+            display: flex;
+            margin-bottom: 1rem;
+        }
+        
+        .timeline {
+            margin-top: 1.5rem;
+            position: relative;
+        }
+        
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: var(--pf-global--Color--300);
+            shape-rendering: crispEdges;
+        }
+        
+        .track-label {
+            font-family: var(--pf-global--FontFamily--heading);
+            font-weight: var(--pf-global--FontWeight--semi-bold);
+            font-size: 14px;
+            fill: var(--pf-global--Color--100);
+        }
+        
+        .step {
+            stroke: var(--pf-global--Color--light-100);
+            stroke-width: 1px;
+        }
+        
+        .step.pending {
+            fill: var(--pf-global--Color--200);
+        }
+        
+        .step.running {
+            fill: var(--pf-global--info-color--100);
+        }
+        
+        .step.completed {
+            fill: var(--pf-global--success-color--100);
+        }
+        
+        .step.waiting_for_manual {
+            fill: var(--pf-global--warning-color--100);
+        }
+        
+        .step.aborted {
+            fill: var(--pf-global--danger-color--100);
+        }
+        
+        .tooltip {
+            font-family: var(--pf-global--FontFamily--sans-serif);
+            position: absolute;
+            padding: 8px 12px;
+            background-color: var(--pf-global--BackgroundColor--dark-100);
+            color: var(--pf-global--Color--light-100);
+            border-radius: var(--pf-global--BorderRadius--sm);
+            box-shadow: var(--pf-global--BoxShadow--md);
+            pointer-events: none;
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 300px;
+        }
+        
+        .tooltip-title {
+            font-family: var(--pf-global--FontFamily--heading);
+            font-weight: var(--pf-global--FontWeight--bold);
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .tooltip .tooltip-description {
+            font-style: italic;
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+        
+        .pf-c-chip-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .pf-c-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            background-color: var(--pf-global--BackgroundColor--200);
+            border-radius: var(--pf-global--BorderRadius--sm);
+            font-size: 0.75rem;
+        }
+        
+        .pf-c-chip.pf-m-start {
+            background-color: var(--pf-global--success-color--100);
+            color: var(--pf-global--Color--light-100);
+        }
+        
+        .pf-c-chip.pf-m-end {
+            background-color: var(--pf-global--warning-color--100);
+            color: var(--pf-global--Color--dark-100);
+        }
+        
+        .pf-c-chip.pf-m-abort {
+            background-color: var(--pf-global--danger-color--100);
+            color: var(--pf-global--Color--light-100);
+        }
+        
+        .pf-c-progress {
+            --pf-c-progress--Height: 1rem;
+            width: 100%;
+            margin-bottom: 1rem;
+        }
+        
+        .pf-c-progress__bar {
+            height: var(--pf-c-progress--Height);
+            background-color: var(--pf-global--BackgroundColor--light-300);
+            border-radius: calc(var(--pf-c-progress--Height) / 2);
+        }
+        
+        .pf-c-progress__indicator {
+            height: 100%;
+            background-color: var(--pf-global--primary-color--100);
+            border-radius: calc(var(--pf-c-progress--Height) / 2);
+            transition: width 0.3s ease;
+        }
+        
+        .pf-c-progress__status {
+            text-align: right;
+            font-size: 0.75rem;
+            color: var(--pf-global--Color--100);
+        }
+        
+        .playhead {
+            stroke: var(--pf-global--active-color--100);
+            stroke-width: 2px;
+            stroke-dasharray: 5, 5;
+        }
+        
+        .playhead-handle {
+            fill: var(--pf-global--active-color--100);
+            cursor: pointer;
+        }
+        
+        /* PatternFly description list styles */
+        .pf-c-description-list__term {
+            font-weight: var(--pf-global--FontWeight--bold);
+            color: var(--pf-global--Color--200);
+            margin-bottom: 0.25rem;
+        }
+        
+        .pf-c-description-list__description {
+            margin-bottom: 1rem;
+            color: var(--pf-global--Color--100);
+        }
+        
+        /* PatternFly status colors */
+        .status-running {
+            color: var(--pf-global--info-color--100);
+        }
+        
+        .status-completed {
+            color: var(--pf-global--success-color--100);
+        }
+        
+        .status-waiting {
+            color: var(--pf-global--warning-color--100);
+        }
+        
+        .status-error {
+            color: var(--pf-global--danger-color--100);
+        }
+        
+        /* Step menu styling */
+        #step-menu {
+            background-color: var(--pf-global--BackgroundColor--100);
+            border: 1px solid var(--pf-global--BorderColor--100);
+            box-shadow: var(--pf-global--BoxShadow--md);
+            border-radius: var(--pf-global--BorderRadius--sm);
+            z-index: 1000;
+        }
+        
+        .pf-c-menu__item {
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            color: var(--pf-global--Color--100);
+            transition: background-color 0.2s ease-in-out;
+        }
+        
+        .pf-c-menu__item:hover {
+            background-color: var(--pf-global--BackgroundColor--light-300);
+        }
+        
+        .pf-c-button i, .pf-c-chip i {
+            margin-right: 0.5rem;
+        }
+        
+        .pf-c-button-group .pf-c-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .pf-c-chip {
+            display: inline-flex;
+            align-items: center;
+        }
+        
+        /* Timeline styles */
+        .timeline-container {
+            font-family: var(--pf-global--FontFamily--sans-serif);
+            margin-top: 20px;
+            position: relative;
+        }
+        
+        .program-title {
+            font-family: var(--pf-global--FontFamily--heading);
+            font-weight: var(--pf-global--FontWeight--bold);
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--pf-global--primary-color--100);
+        }
+    </style>
+</head>
+<body>
+    <div class="pf-c-page">
+        <header class="pf-c-page__header">
+            <h1 class="pf-c-title pf-m-2xl">Rhylthyme D3 Visualizer</h1>
+        </header>
+        
+        <main class="pf-c-page__main">
+            <div class="pf-c-card">
+                <h2 class="pf-c-title pf-m-lg">Program Controls</h2>
+                <div class="pf-c-button-group">
+                    <button id="startBtn" class="pf-c-button pf-m-primary"><i class="fas fa-play" aria-hidden="true"></i> Start</button>
+                    <button id="pauseBtn" class="pf-c-button pf-m-secondary"><i class="fas fa-pause" aria-hidden="true"></i> Pause</button>
+                    <button id="resetBtn" class="pf-c-button pf-m-secondary"><i class="fas fa-history" aria-hidden="true"></i> Reset</button>
+                    <button id="speedUpBtn" class="pf-c-button pf-m-secondary"><i class="fas fa-angle-double-right" aria-hidden="true"></i> Speed Up</button>
+                    <button id="slowDownBtn" class="pf-c-button pf-m-secondary"><i class="fas fa-angle-double-left" aria-hidden="true"></i> Slow Down</button>
+                </div>
+            </div>
+            
+            <div class="pf-c-card">
+                <h2 class="pf-c-title pf-m-lg">Program Status</h2>
+                <div class="pf-c-description-list">
+                    <div class="pf-c-description-list__group">
+                        <dt class="pf-c-description-list__term">Program:</dt>
+                        <dd class="pf-c-description-list__description" id="programName">-</dd>
+                    </div>
+                    <div class="pf-c-description-list__group">
+                        <dt class="pf-c-description-list__term">Status:</dt>
+                        <dd class="pf-c-description-list__description" id="programStatus">-</dd>
+                    </div>
+                    <div class="pf-c-description-list__group">
+                        <dt class="pf-c-description-list__term">Elapsed Time:</dt>
+                        <dd class="pf-c-description-list__description" id="elapsedTime">-</dd>
+                    </div>
+                    <div class="pf-c-description-list__group">
+                        <dt class="pf-c-description-list__term">Time Scale:</dt>
+                        <dd class="pf-c-description-list__description" id="timeScale">1x</dd>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pf-c-card">
+                <h2 class="pf-c-title pf-m-lg">Timeline</h2>
+                <div class="timeline" id="timeline"></div>
+            </div>
+            
+            <div class="pf-c-card">
+                <h2 class="pf-c-title pf-m-lg">Resources</h2>
+                <div class="resources" id="resources"></div>
+            </div>
+            
+            <div class="pf-c-card">
+                <h2 class="pf-c-title pf-m-lg">Triggers</h2>
+                <div class="triggers" id="triggers"></div>
+            </div>
+        </main>
+    </div>
+    
+    <div class="tooltip"></div>
+    
+    <script>
+        // Global variables
+        let programFile = null;
+        let updateInterval = null;
+        
+        // Get program file from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        programFile = urlParams.get('program_file');
+        
+        // Check if tooltip exists, if not create it
+        let tooltip = d3.select('#tooltip');
+        if (tooltip.empty()) {
+            tooltip = d3.select("body").append("div")
+                .attr("id", "tooltip")
+                .attr("class", "tooltip")
+                .style("position", "absolute")
+                .style("pointer-events", "none")
+                .style("opacity", 0)
+                .style("z-index", "10");
+        }
+        
+        // Function to show a popup menu for step options
+        function showStepMenu(x, y, menuItems) {
+            // Remove any existing menus
+            d3.select("#step-menu").remove();
+            
+            // Create a new menu
+            const menu = d3.select("body")
+                .append("div")
+                .attr("id", "step-menu")
+                .style("position", "absolute")
+                .style("left", x + "px")
+                .style("top", y + "px")
+                .style("background-color", "white")
+                .style("border", "1px solid #ccc")
+                .style("border-radius", "4px")
+                .style("padding", "5px")
+                .style("box-shadow", "0 2px 5px rgba(0,0,0,0.2)")
+                .style("z-index", "1000");
+            
+            // Add menu items
+            menuItems.forEach(function(item) {
+                menu.append("div")
+                    .attr("class", "pf-c-menu__item")
+                    .style("padding", "5px 10px")
+                    .style("cursor", "pointer")
+                    .text(item.label)
+                    .on("click", function() {
+                        // Execute the action
+                        item.action();
+                        
+                        // Remove the menu
+                        menu.remove();
+                    });
+            });
+            
+            // Add click outside to close
+            d3.select("body").on("click.menu", function() {
+                // Check if the click is outside the menu
+                if (!menu.node().contains(d3.event.target)) {
+                    menu.remove();
+                    d3.select("body").on("click.menu", null);
+                }
+            });
+        }
+        
+        // Add CSS for the menu
+        const menuStyle = document.createElement("style");
+        menuStyle.textContent = `
+            #step-menu .pf-c-menu__item:hover {
+                background-color: var(--pf-global--BackgroundColor--200);
+            }
+        `;
+        document.head.appendChild(menuStyle);
+        
+        // Initialize the timeline visualization
+        function initCustomD3Timeline() {
+            const margin = {top: 50, right: 50, bottom: 50, left: 100};
+            const width = document.getElementById('timeline').clientWidth - margin.left - margin.right;
+            const height = 300 - margin.top - margin.bottom;
+            
+            // Create SVG element
+            const svg = d3.select('#timeline')
+                .append('svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                .append('g')
+                .attr('transform', `translate(${margin.left}, ${margin.top})`);
+            
+            // Create time scale
+            const timeScale = d3.scale.linear()
+                .domain([0, 60]) // 0 to 60 minutes
+                .range([0, width]);
+            
+            // Create time axis
+            const timeAxis = d3.svg.axis()
+                .scale(timeScale)
+                .orient('bottom')
+                .ticks(10)
+                .tickFormat(d => `${d}m`);
+            
+            // Add time axis to SVG
+            svg.append('g')
+                .attr('class', 'x axis')
+                .attr('transform', `translate(0, ${height})`)
+                .call(timeAxis);
+            
+            // Add axis label
+            svg.append('text')
+                .attr('class', 'axis-label')
+                .attr('text-anchor', 'middle')
+                .attr('transform', `translate(${width/2}, ${height + 40})`)
+                .text('Time (minutes)');
+            
+            // Create playhead group
+            const playheadGroup = svg.append('g')
+                .attr('class', 'playhead-group');
+            
+            // Add playhead line
+            playheadGroup.append('line')
+                .attr('class', 'playhead')
+                .attr('y1', 0)
+                .attr('y2', height)
+                .attr('x1', 0)
+                .attr('x2', 0);
+            
+            // Add playhead handle
+            playheadGroup.append('circle')
+                .attr('class', 'playhead-handle')
+                .attr('r', 5)
+                .attr('cx', 0)
+                .attr('cy', height);
+            
+            // Store references to elements and scales
+            window.timelineChart = {
+                svg: svg,
+                width: width,
+                height: height,
+                margin: margin,
+                timeScale: timeScale,
+                playheadGroup: playheadGroup
+            };
+            
+            // Initial update with the program data
+            updateTimelineData({});
+        }
+        
+        function updateTimelineData(data) {
+            if (data && data.steps) {
+                const steps = data.steps;
+                
+                // Group steps by track
+                const tracks = {};
+                steps.forEach(step => {
+                    // Use trackId if available, otherwise fall back to track property
+                    const trackIdentifier = step.trackId || step.track;
+                    if (!tracks[trackIdentifier]) {
+                        tracks[trackIdentifier] = [];
+                    }
+                    tracks[trackIdentifier].push(step);
+                });
+                
+                // Get track names and sort steps within each track
+                const trackNames = Object.keys(tracks);
+                
+                // Create a map to store step dependencies for ordering
+                const stepDependencyMap = {};
+                const stepSequence = {};
+                const stepStartTimes = {};
+                let sequenceCounter = 0;
+                
+                // First pass: collect direct dependencies and set initial start times
+                steps.forEach(step => {
+                    console.log(`Processing step ${step.id}, trigger type: ${step.startTrigger ? step.startTrigger.type : 'none'}`);
+                    
+                    if (step.startTrigger) {
+                        if (step.startTrigger.type === 'afterStep' && step.startTrigger.stepId) {
+                            // This step depends on another step
+                            stepDependencyMap[step.id] = step.startTrigger.stepId;
+                            console.log(`  ${step.id} depends on ${step.startTrigger.stepId}`);
+                        } else if (step.startTrigger.type === 'programStart') {
+                            // This is a starting step - starts at time 0
+                            stepStartTimes[step.id] = 0;
+                            stepSequence[step.id] = sequenceCounter++;
+                            console.log(`  ${step.id} starts at program start (time 0)`);
+                        } else if (step.startTrigger.type === 'programStartOffset' && step.startTrigger.offsetSeconds) {
+                            // This is a delayed start - store the exact offset time
+                            stepStartTimes[step.id] = step.startTrigger.offsetSeconds;
+                            // Also give it a high sequence number to ensure it's ordered correctly
+                            stepSequence[step.id] = 1000 + (step.startTrigger.offsetSeconds / 10);
+                            console.log(`  ${step.id} has programStartOffset of ${step.startTrigger.offsetSeconds} seconds`);
+                        } else if (step.startTrigger.type === 'delay' && step.startTrigger.delaySeconds) {
+                            // This is a delayed start
+                            stepStartTimes[step.id] = step.startTrigger.delaySeconds;
+                            stepSequence[step.id] = 1000 + (step.startTrigger.delaySeconds / 10);
+                            console.log(`  ${step.id} has delay of ${step.startTrigger.delaySeconds} seconds`);
+                        }
+                    }
+                    
+                    // If step has explicit expected start time, use it for sorting
+                    if (step.expectedStartTime !== undefined) {
+                        stepStartTimes[step.id] = step.expectedStartTime;
+                        stepSequence[step.id] = 1000 + (step.expectedStartTime / 10);
+                        console.log(`  ${step.id} has explicit start time of ${step.expectedStartTime} seconds`);
+                    }
+                });
+                
+                // Print out the collected start times for verification
+                console.log("Step start times after first pass:");
+                Object.keys(stepStartTimes).forEach(stepId => {
+                    console.log(`  ${stepId}: ${stepStartTimes[stepId]} seconds`);
+                });
+                
+                // Second pass: resolve dependencies into start times
+                let changed = true;
+                let iterations = 0;
+                const MAX_ITERATIONS = 10; // Prevent infinite loops
+                
+                while (changed && iterations < MAX_ITERATIONS) {
+                    iterations++;
+                    changed = false;
+                    Object.keys(stepDependencyMap).forEach(stepId => {
+                        const dependsOnStepId = stepDependencyMap[stepId];
+                        
+                        // If the dependency has a start time but this step doesn't
+                        if (dependsOnStepId in stepStartTimes && !(stepId in stepStartTimes)) {
+                            // Find the depended-on step
+                            const dependencyStep = steps.find(s => s.id === dependsOnStepId);
+                            let dependencyDuration = 0;
+                            
+                            // Calculate duration of the dependency if possible
+                            if (dependencyStep && dependencyStep.duration) {
+                                if (dependencyStep.duration.type === 'fixed' && dependencyStep.duration.seconds) {
+                                    dependencyDuration = dependencyStep.duration.seconds;
+                                } else if (dependencyStep.duration.type === 'variable' && dependencyStep.duration.defaultSeconds) {
+                                    dependencyDuration = dependencyStep.duration.defaultSeconds;
+                                }
+                            }
+                            
+                            // Set this step's start time to dependency's start time + duration
+                            stepStartTimes[stepId] = stepStartTimes[dependsOnStepId] + dependencyDuration;
+                            stepSequence[stepId] = sequenceCounter++;
+                            changed = true;
+                        }
+                    });
+                }
+                
+                // Third pass: calculate expected end times for all steps
+                const stepEndTimes = {};
+                
+                steps.forEach(step => {
+                    if (step.id in stepStartTimes) {
+                        let duration = 0;
+                        
+                        // Get step duration
+                        if (step.duration) {
+                            if (step.duration.type === 'fixed' && step.duration.seconds) {
+                                duration = step.duration.seconds;
+                            } else if (step.duration.type === 'variable' && step.duration.defaultSeconds) {
+                                duration = step.duration.defaultSeconds;
+                            }
+                        }
+                        
+                        // Calculate expected end time
+                        stepEndTimes[step.id] = stepStartTimes[step.id] + duration;
+                    }
+                });
+                
+                // Sort steps within each track based on start times
+                trackNames.forEach(trackName => {
+                    const trackSteps = tracks[trackName];
+                    
+                    // First sort by start times when available
+                    trackSteps.sort((a, b) => {
+                        // If both have start times, use them
+                        if (a.id in stepStartTimes && b.id in stepStartTimes) {
+                            return stepStartTimes[a.id] - stepStartTimes[b.id];
+                        }
+                        
+                        // If only one has a start time, it should come first if it starts at 0,
+                        // otherwise it should come after steps with no start time
+                        if (a.id in stepStartTimes) {
+                            return stepStartTimes[a.id] === 0 ? -1 : 1;
+                        }
+                        if (b.id in stepStartTimes) {
+                            return stepStartTimes[b.id] === 0 ? 1 : -1;
+                        }
+                        
+                        // If neither has a start time, use IDs as fallback
+                        return a.id.localeCompare(b.id);
+                    });
+                    
+                    // Assign x positions based on their order and start time
+                    trackSteps.forEach((step, index) => {
+                        // Special log for toast-cook to debug its position
+                        if (step.id === 'toast-cook') {
+                            console.log('TOAST DEBUG:');
+                            console.log('  Start Trigger:', JSON.stringify(step.startTrigger));
+                            console.log('  Start Time Assigned:', stepStartTimes[step.id]);
+                            console.log('  Has Start Time?', step.id in stepStartTimes);
+                        }
+                        
+                        // First check for programStartOffset directly in step data
+                        if (step.startTrigger && step.startTrigger.type === 'programStartOffset' && 
+                            typeof step.startTrigger.offsetSeconds === 'number') {
+                            
+                            const offset = step.startTrigger.offsetSeconds;
+                            // Use a timeScaleFactor to convert seconds to pixels (adjust as needed)
+                            const timeScaleFactor = 0.6;
+                            step.xPosition = offset * timeScaleFactor;
+                            console.log(`Step ${step.id} - Using direct programStartOffset: ${offset}s - Assigned x-position: ${step.xPosition}`);
+                            
+                            // Store start time for tooltips
+                            step.startTimeSeconds = offset;
+                            
+                            // Calculate end time if duration is available
+                            if (step.duration) {
+                                let duration = 0;
+                                if (step.duration.type === 'fixed' && step.duration.seconds) {
+                                    duration = step.duration.seconds;
+                                } else if (step.duration.type === 'variable' && step.duration.defaultSeconds) {
+                                    duration = step.duration.defaultSeconds;
+                                }
+                                
+                                if (duration > 0) {
+                                    step.endTimeSeconds = offset + duration;
+                                }
+                            }
+                        }
+                        // Then use start time for x position when available
+                        else if (step.id in stepStartTimes) {
+                            // Direct x-position based on start time
+                            const timeScaleFactor = 0.6;
+                            step.xPosition = stepStartTimes[step.id] * timeScaleFactor;
+                            
+                            console.log(`Step ${step.id} - Start time: ${stepStartTimes[step.id]}s - Assigned x-position: ${step.xPosition}`);
+                            
+                            // Store start and end times for tooltips
+                            step.startTimeSeconds = stepStartTimes[step.id];
+                            if (step.id in stepEndTimes) {
+                                step.endTimeSeconds = stepEndTimes[step.id];
+                            }
+                        } else {
+                            // Fallback positioning for steps without timing info
+                            step.xPosition = index * 120;
+                            console.log(`Step ${step.id} - No start time - Assigned default x-position: ${step.xPosition}`);
+                        }
+                    });
+                });
+                
+                // Add direct console logging for toast-cook step data
+                const allSteps = [];
+                for (const trackName in tracks) {
+                    tracks[trackName].forEach(step => {
+                        allSteps.push(step);
+                        if (step.id === 'toast-cook') {
+                            console.log('DIRECT DEBUG - toast-cook step data:');
+                            console.log(JSON.stringify(step, null, 2));
+                            console.log('Start trigger:', JSON.stringify(step.startTrigger));
+                            console.log('X position:', step.xPosition);
+                        }
+                    });
+                }
+                
+                // Create a scale for the tracks
+                const trackScale = d3.scale.ordinal()
+                    .domain(trackNames)
+                    .rangeRoundBands([0, timelineChart.height], 0.2);
+                
+                const trackHeight = trackScale.rangeBand();
+                
+                // Check if visualization has been initialized
+                const isInitialized = timelineChart.svg.select('.timeline-content').size() > 0;
+                
+                if (!isInitialized) {
+                    // Create track groups
+                    const trackGroups = timelineChart.svg.append('g')
+                        .attr('class', 'timeline-content')
+                        .selectAll('.track')
+                        .data(trackNames)
+                        .enter()
+                        .append('g')
+                        .attr('class', 'track')
+                        .attr('transform', d => `translate(0, ${trackScale(d)})`);
+                    
+                    // Add track labels
+                    trackGroups.append('text')
+                        .attr('class', 'track-label')
+                        .attr('x', -5)
+                        .attr('y', trackHeight / 2)
+                        .attr('text-anchor', 'end')
+                        .attr('dominant-baseline', 'middle')
+                        .text(d => d);
+                    
+                    // Add step rectangles
+                    trackGroups.each(function(trackName) {
+                        const trackSteps = tracks[trackName];
+                        
+                        d3.select(this).selectAll('.step')
+                            .data(trackSteps, d => d.id)
+                            .enter()
+                            .append('rect')
+                            .attr('class', d => `step ${d.status.toLowerCase()}`)
+                            .attr('id', d => d.id)
+                            .attr('data-step-id', d => d.id) // Add data attribute for easier selection
+                            .attr('x', d => d.xPosition)
+                            .attr('y', 0)
+                            .attr('width', d => {
+                                // Fixed widths based on step type
+                                if (d.status === 'COMPLETED') return 100;
+                                if (d.status === 'RUNNING') return 150;
+                                return 80; // PENDING
+                            })
+                            .attr('height', trackHeight)
+                            .attr('rx', 3)
+                            .attr('ry', 3)
+                            .style('opacity', d => {
+                                // For steps with fractional resource usage, adjust opacity
+                                const minOpacity = 0.4;
+                                const maxOpacity = 1.0;
+                                
+                                // Find the minimum fraction for this step
+                                let minFraction = 1.0;
+                                if (d.taskFractions) {
+                                    Object.values(d.taskFractions).forEach(fraction => {
+                                        if (fraction < minFraction) {
+                                            minFraction = fraction;
+                                        }
+                                    });
+                                }
+                                
+                                // Scale opacity based on the minimum fraction
+                                return minOpacity + (maxOpacity - minOpacity) * minFraction;
+                            })
+                            .on('mouseover', function(d) {
+                                // Calculate resource usage
+                                let resourceFractions = {};
+                                
+                                if (data.resourceConstraints) {
+                                    data.resourceConstraints.forEach(constraint => {
+                                        const taskType = constraint.task;
+                                        const maxConcurrent = constraint.maxConcurrent;
+                                        
+                                        if (d.task === taskType) {
+                                            resourceFractions[taskType] = 1 / maxConcurrent;
+                                        }
+                                    });
+                                }
+                                
+                                // Format time string for display
+                                function formatTime(seconds) {
+                                    if (seconds === undefined) return 'Unknown';
+                                    const mins = Math.floor(seconds / 60);
+                                    const secs = Math.floor(seconds % 60);
+                                    return `${mins}:${secs.toString().padStart(2, '0')}`;
+                                }
+                                
+                                // Check if tooltip exists, if not create it
+                                let tooltip = d3.select('#tooltip');
+                                if (tooltip.empty()) {
+                                    tooltip = d3.select("body").append("div")
+                                        .attr("id", "tooltip")
+                                        .attr("class", "tooltip")
+                                        .style("opacity", 0)
+                                        .style("pointer-events", "none");
+                                }
+                                
+                                let tooltipContent = `
+                                    <div class="tooltip-title">
+                                        ${d.name}
+                                        <span class="status ${d.status.toLowerCase()}">${d.status}</span>
+                                    </div>
+                                `;
+                                
+                                tooltipContent += `<div class="tooltip-description">${d.description}</div>`;
+                                
+                                // Add timing information when available
+                                if (d.startTimeSeconds !== undefined) {
+                                    tooltipContent += `<div>Start: ${formatTime(d.startTimeSeconds)}</div>`;
+                                }
+                                
+                                if (d.endTimeSeconds !== undefined) {
+                                    tooltipContent += `<div>End: ${formatTime(d.endTimeSeconds)}</div>`;
+                                }
+                                
+                                tooltipContent += `
+                                    <div class="step-details">
+                                        <div>ID: ${d.id}</div>
+                                        <div>Track: ${d.trackId}</div>
+                                    </div>
+                                `;
+                                
+                                // Add resource usage info
+                                tooltipContent += `<br/>Resources:<br/><ul style="margin: 0; padding-left: 15px;">`;
+                                
+                                for (const taskType in resourceFractions) {
+                                    const fraction = resourceFractions[taskType];
+                                    tooltipContent += `<li>${taskType}: ${(fraction * 100).toFixed(0)}%</li>`;
+                                }
+                                tooltipContent += "</ul>";
+                                
+                                // Add progress for running steps
+                                if (d.status === 'RUNNING') {
+                                    tooltipContent += `<div>Progress: ${(d.progress * 100).toFixed(0)}%</div>`;
+                                }
+                                
+                                // Add trigger info for manual triggers
+                                if (d.manualTriggerName) {
+                                    tooltipContent += `<div><em>Click to ${d.manualTriggerName}</em></div>`;
+                                } else {
+                                    tooltipContent += "<div><em>Click for options</em></div>";
+                                }
+                                
+                                tooltip.html(tooltipContent)
+                                    .style("left", (d3.event.pageX + 10) + "px")
+                                    .style("top", (d3.event.pageY - 28) + "px")
+                                    .style("opacity", 1);
+                            })
+                            .on('mouseout', function(d) {
+                                // Hide tooltip
+                                d3.select("#tooltip").style("opacity", 0);
+                            })
+                            .on("click", function(d) {
+                                // Show step menu for running steps
+                                if (d.status === "RUNNING") {
+                                    const menuItems = [];
+                                    
+                                    // Add stop option for steps with manual trigger
+                                    if (d.manualTriggerName) {
+                                        menuItems.push({
+                                            label: `${d.manualTriggerName}: ${d.name}`,
+                                            action: function() {
+                                                // Trigger the manual end
+                                                fetch('/api/program_trigger', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json',
+                                                    },
+                                                    body: JSON.stringify({
+                                                        trigger: d.manualTriggerName,
+                                                        stepId: d.id
+                                                    }),
+                                                });
+                                            }
+                                        });
+                                    } else {
+                                        // Add generic stop option
+                                        menuItems.push({
+                                            label: `Stop: ${d.name}`,
+                                            action: function() {
+                                                // Trigger generic stop
+                                                fetch('/api/program_trigger', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json',
+                                                    },
+                                                    body: JSON.stringify({
+                                                        trigger: 'stop',
+                                                        stepId: d.id
+                                                    }),
+                                                });
+                                            }
+                                        });
+                                    }
+                                    
+                                    // Show the menu
+                                    showStepMenu(d3.event.pageX, d3.event.pageY, menuItems);
+                                }
+                            });
+                    });
+                } else {
+                    // Update existing steps
+                    trackNames.forEach(trackName => {
+                        const trackSteps = tracks[trackName];
+                        
+                        timelineChart.svg.select(`.track:nth-of-type(${trackNames.indexOf(trackName) + 1})`)
+                            .selectAll('.step')
+                            .data(trackSteps, d => d.id)
+                            .attr('class', d => `step ${d.status.toLowerCase()}`)
+                            .attr('x', d => d.xPosition)
+                            .style('opacity', d => {
+                                // For steps with fractional resource usage, adjust opacity
+                                const minOpacity = 0.4;
+                                const maxOpacity = 1.0;
+                                
+                                // Find the minimum fraction for this step
+                                let minFraction = 1.0;
+                                if (d.taskFractions) {
+                                    Object.values(d.taskFractions).forEach(fraction => {
+                                        if (fraction < minFraction) {
+                                            minFraction = fraction;
+                                        }
+                                    });
+                                }
+                                
+                                // Scale opacity based on the minimum fraction
+                                return minOpacity + (maxOpacity - minOpacity) * minFraction;
+                            })
+                            .on('mouseover', function(d) {
+                                // Calculate resource usage
+                                let resourceFractions = {};
+                                
+                                if (data.resourceConstraints) {
+                                    data.resourceConstraints.forEach(constraint => {
+                                        const taskType = constraint.task;
+                                        const maxConcurrent = constraint.maxConcurrent;
+                                        
+                                        if (d.task === taskType) {
+                                            resourceFractions[taskType] = 1 / maxConcurrent;
+                                        }
+                                    });
+                                }
+                                
+                                // Format time string for display
+                                function formatTime(seconds) {
+                                    if (seconds === undefined) return 'Unknown';
+                                    const mins = Math.floor(seconds / 60);
+                                    const secs = Math.floor(seconds % 60);
+                                    return `${mins}:${secs.toString().padStart(2, '0')}`;
+                                }
+                                
+                                // Check if tooltip exists, if not create it
+                                let tooltip = d3.select('#tooltip');
+                                if (tooltip.empty()) {
+                                    tooltip = d3.select("body").append("div")
+                                        .attr("id", "tooltip")
+                                        .attr("class", "tooltip")
+                                        .style("opacity", 0)
+                                        .style("pointer-events", "none");
+                                }
+                                
+                                let tooltipContent = `
+                                    <div class="tooltip-title">
+                                        ${d.name}
+                                        <span class="status ${d.status.toLowerCase()}">${d.status}</span>
+                                    </div>
+                                `;
+                                
+                                tooltipContent += `<div class="tooltip-description">${d.description}</div>`;
+                                
+                                // Add timing information when available
+                                if (d.startTimeSeconds !== undefined) {
+                                    tooltipContent += `<div>Start: ${formatTime(d.startTimeSeconds)}</div>`;
+                                }
+                                
+                                if (d.endTimeSeconds !== undefined) {
+                                    tooltipContent += `<div>End: ${formatTime(d.endTimeSeconds)}</div>`;
+                                }
+                                
+                                tooltipContent += `
+                                    <div class="step-details">
+                                        <div>ID: ${d.id}</div>
+                                        <div>Track: ${d.trackId}</div>
+                                    </div>
+                                `;
+                                
+                                // Add resource usage info
+                                tooltipContent += `<br/>Resources:<br/><ul style="margin: 0; padding-left: 15px;">`;
+                                
+                                for (const taskType in resourceFractions) {
+                                    const fraction = resourceFractions[taskType];
+                                    tooltipContent += `<li>${taskType}: ${(fraction * 100).toFixed(0)}%</li>`;
+                                }
+                                tooltipContent += "</ul>";
+                                
+                                // Add progress for running steps
+                                if (d.status === 'RUNNING') {
+                                    tooltipContent += `<div>Progress: ${(d.progress * 100).toFixed(0)}%</div>`;
+                                }
+                                
+                                // Add trigger info for manual triggers
+                                if (d.manualTriggerName) {
+                                    tooltipContent += `<div><em>Click to ${d.manualTriggerName}</em></div>`;
+                                } else {
+                                    tooltipContent += "<div><em>Click for options</em></div>";
+                                }
+                                
+                                tooltip.html(tooltipContent)
+                                    .style("left", (d3.event.pageX + 10) + "px")
+                                    .style("top", (d3.event.pageY - 28) + "px")
+                                    .style("opacity", 1);
+                            })
+                            .on('mouseout', function(d) {
+                                // Hide tooltip
+                                d3.select("#tooltip").style("opacity", 0);
+                            })
+                            .on("click", function(d) {
+                                // Show step menu for running steps
+                                if (d.status === "RUNNING") {
+                                    const menuItems = [];
+                                    
+                                    // Add stop option for steps with manual trigger
+                                    if (d.manualTriggerName) {
+                                        menuItems.push({
+                                            label: `${d.manualTriggerName}: ${d.name}`,
+                                            action: function() {
+                                                // Trigger the manual end
+                                                fetch('/api/program_trigger', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json',
+                                                    },
+                                                    body: JSON.stringify({
+                                                        trigger: d.manualTriggerName,
+                                                        stepId: d.id
+                                                    }),
+                                                });
+                                            }
+                                        });
+                                    } else {
+                                        // Add generic stop option
+                                        menuItems.push({
+                                            label: `Stop: ${d.name}`,
+                                            action: function() {
+                                                // Trigger generic stop
+                                                fetch('/api/program_trigger', {
+                                                    method: 'POST',
+                                                    headers: {
+                                                        'Content-Type': 'application/json',
+                                                    },
+                                                    body: JSON.stringify({
+                                                        trigger: 'stop',
+                                                        stepId: d.id
+                                                    }),
+                                                });
+                                            }
+                                        });
+                                    }
+                                    
+                                    // Show the menu
+                                    showStepMenu(d3.event.pageX, d3.event.pageY, menuItems);
+                                }
+                            });
+                    });
+                }
+                
+                // Update playhead position based on elapsed time
+                if (data.program && data.program.elapsed_time !== undefined) {
+                    updatePlayhead(data.program.elapsed_time);
+                } else {
+                    // Use a default value or skip updating the playhead
+                    console.log("Warning: data.program.elapsed_time is undefined");
+                }
+            }
+        }
+        
+        function updatePlayhead(elapsedTimeInSeconds) {
+            if (!timelineChart || !timelineChart.playheadGroup) return;
+            
+            // Convert seconds to minutes for the time scale
+            const elapsedTimeInMinutes = elapsedTimeInSeconds / 60;
+            
+            // Calculate x position based on elapsed time
+            const xPos = timelineChart.timeScale(elapsedTimeInMinutes);
+            
+            // Update playhead position
+            timelineChart.playheadGroup.select('.playhead')
+                .attr('x1', xPos)
+                .attr('x2', xPos);
+            
+            timelineChart.playheadGroup.select('.playhead-handle')
+                .attr('cx', xPos);
+        }
+        
+        function updateProgramStatus(program) {
+            if (!program) {
+                console.warn("No program data provided to updateProgramStatus");
+                return;
+            }
+            
+            document.getElementById('programName').textContent = program.name || '-';
+            document.getElementById('programStatus').textContent = program.status_message || '-';
+            document.getElementById('elapsedTime').textContent = program.elapsed_time_formatted || '-';
+            document.getElementById('timeScale').textContent = `${program.time_scale || 1}x`;
+            
+            // Update button states
+            document.getElementById('startBtn').disabled = program.is_running;
+            document.getElementById('pauseBtn').disabled = !program.is_running;
+        }
+        
+        function updateResourceUsage(data) {
+            try {
+                const resourceContainer = d3.select("#resources");
+                resourceContainer.selectAll("*").remove();
+                
+                // Check if data exists and has the expected properties
+                if (!data || !data.resourceConstraints) {
+                    console.warn("Resource constraints data is missing");
+                    
+                    // Create a placeholder for missing data
+                    const resourceDiv = resourceContainer.append("div")
+                        .attr("class", "pf-c-empty-state");
+                    
+                    resourceDiv.append("div")
+                        .attr("class", "pf-c-empty-state__content")
+                        .append("div")
+                        .attr("class", "pf-c-empty-state__body")
+                        .text("Resource Usage (No Data)");
+                    
+                    return;
+                }
+                
+                // Create a single resource item for the overall resource usage
+                const resourceDiv = resourceContainer.append("div")
+                    .attr("class", "pf-c-card pf-m-compact");
+                
+                resourceDiv.append("div")
+                    .attr("class", "pf-c-card__title")
+                    .text("Overall Resource Usage");
+                
+                const usageBarContainer = resourceDiv.append("div")
+                    .attr("class", "pf-c-card__body");
+                
+                // Safely access properties with fallbacks to prevent errors
+                const currentUsage = data.resourceConstraints && typeof data.resourceConstraints.currentUsage !== 'undefined' 
+                    ? Number(data.resourceConstraints.currentUsage) 
+                    : 0;
+                const maxConcurrent = data.resourceConstraints && typeof data.resourceConstraints.maxConcurrent !== 'undefined' 
+                    ? Number(data.resourceConstraints.maxConcurrent) 
+                    : 1;
+                
+                // Ensure we're working with valid numbers
+                const safeCurrentUsage = isNaN(currentUsage) ? 0 : currentUsage;
+                const safeMaxConcurrent = isNaN(maxConcurrent) || maxConcurrent <= 0 ? 1 : maxConcurrent;
+                
+                const usagePercentage = (safeCurrentUsage / safeMaxConcurrent) * 100;
+                
+                // Create progress bar using PatternFly styling
+                const progressContainer = usageBarContainer.append("div")
+                    .attr("class", "pf-c-progress");
+                
+                const progressBar = progressContainer.append("div")
+                    .attr("class", "pf-c-progress__bar");
+                
+                progressBar.append("div")
+                    .attr("class", "pf-c-progress__indicator")
+                    .style("width", `${Math.min(100, usagePercentage)}%`);
+                
+                progressContainer.append("div")
+                    .attr("class", "pf-c-progress__status")
+                    .text(`${safeCurrentUsage} / ${safeMaxConcurrent}`);
+            } catch (error) {
+                console.error("Error in updateResourceUsage:", error);
+            }
+        }
+        
+        function updateTriggers(triggers) {
+            const triggersContainer = document.getElementById('triggers');
+            
+            if (!triggers || triggers.length === 0) {
+                triggersContainer.innerHTML = '';
+                return;
+            }
+            
+            triggersContainer.innerHTML = '<h3 class="pf-c-title pf-m-md">Available Triggers:</h3>';
+            
+            // Group triggers by type for better organization
+            const triggerGroups = {
+                program: [],
+                start: [],
+                end: [],
+                abort: []
+            };
+            
+            // Sort triggers into groups
+            triggers.forEach(trigger => {
+                const triggerObj = typeof trigger === 'string' 
+                    ? { id: trigger, name: trigger, type: 'unknown' } 
+                    : trigger;
+                
+                if (triggerGroups[triggerObj.type]) {
+                    triggerGroups[triggerObj.type].push(triggerObj);
+                } else {
+                    // For backward compatibility with string-only triggers
+                    triggerGroups.program.push(triggerObj);
+                }
+            });
+            
+            // Create section for program triggers
+            if (triggerGroups.program.length > 0) {
+                const programSection = document.createElement('div');
+                programSection.className = 'pf-c-trigger-section';
+                programSection.innerHTML = '<h4 class="pf-c-title pf-m-sm">Program Controls:</h4>';
+                triggersContainer.appendChild(programSection);
+                
+                const chipGroup = document.createElement('div');
+                chipGroup.className = 'pf-c-chip-group';
+                programSection.appendChild(chipGroup);
+                
+                triggerGroups.program.forEach(trigger => {
+                    const button = document.createElement('button');
+                    button.className = 'pf-c-button pf-m-primary';
+                    
+                    // Add icon to button
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-flag';
+                    icon.setAttribute('aria-hidden', 'true');
+                    button.appendChild(icon);
+                    
+                    // Add space and text
+                    button.appendChild(document.createTextNode(' ' + (trigger.name || trigger.id)));
+                    button.onclick = () => triggerStep(trigger.id);
+                    chipGroup.appendChild(button);
+                });
+            }
+            
+            // Create section for start triggers
+            if (triggerGroups.start.length > 0) {
+                const startSection = document.createElement('div');
+                startSection.className = 'pf-c-trigger-section';
+                startSection.innerHTML = '<h4 class="pf-c-title pf-m-sm">Start Steps:</h4>';
+                triggersContainer.appendChild(startSection);
+                
+                const chipGroup = document.createElement('div');
+                chipGroup.className = 'pf-c-chip-group';
+                startSection.appendChild(chipGroup);
+                
+                triggerGroups.start.forEach(trigger => {
+                    const chip = document.createElement('div');
+                    chip.className = 'pf-c-chip pf-m-start';
+                    
+                    // Add icon to chip
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-play';
+                    icon.setAttribute('aria-hidden', 'true');
+                    chip.appendChild(icon);
+                    
+                    // Add space and text
+                    chip.appendChild(document.createTextNode(' ' + trigger.name));
+                    chip.onclick = () => triggerStep(trigger.id);
+                    chip.style.cursor = 'pointer';
+                    chipGroup.appendChild(chip);
+                });
+            }
+            
+            // Create section for end/stop triggers
+            if (triggerGroups.end.length > 0) {
+                const endSection = document.createElement('div');
+                endSection.className = 'pf-c-trigger-section';
+                endSection.innerHTML = '<h4 class="pf-c-title pf-m-sm">Stop Steps:</h4>';
+                triggersContainer.appendChild(endSection);
+                
+                const chipGroup = document.createElement('div');
+                chipGroup.className = 'pf-c-chip-group';
+                endSection.appendChild(chipGroup);
+                
+                triggerGroups.end.forEach(trigger => {
+                    const chip = document.createElement('div');
+                    chip.className = 'pf-c-chip pf-m-end';
+                    
+                    // Add icon to chip
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-stop';
+                    icon.setAttribute('aria-hidden', 'true');
+                    chip.appendChild(icon);
+                    
+                    // Add space and text
+                    chip.appendChild(document.createTextNode(' ' + trigger.name));
+                    chip.onclick = () => triggerStep(trigger.id);
+                    chip.style.cursor = 'pointer';
+                    chipGroup.appendChild(chip);
+                });
+            }
+            
+            // Create section for abort triggers
+            if (triggerGroups.abort.length > 0) {
+                const abortSection = document.createElement('div');
+                abortSection.className = 'pf-c-trigger-section';
+                abortSection.innerHTML = '<h4 class="pf-c-title pf-m-sm">Abort Steps:</h4>';
+                triggersContainer.appendChild(abortSection);
+                
+                const chipGroup = document.createElement('div');
+                chipGroup.className = 'pf-c-chip-group';
+                abortSection.appendChild(chipGroup);
+                
+                triggerGroups.abort.forEach(trigger => {
+                    const chip = document.createElement('div');
+                    chip.className = 'pf-c-chip pf-m-abort';
+                    chip.textContent = trigger.name;
+                    chip.onclick = () => triggerStep(trigger.id);
+                    chip.style.cursor = 'pointer';
+                    chipGroup.appendChild(chip);
+                });
+            }
+        }
+        
+        function updateStatus() {
+            try {
+                fetchProgramState()
+                    .then(data => {
+                        try {
+                            // Ensure data is properly structured
+                            if (!data) {
+                                console.error("Error: No data received from fetchProgramState");
+                                return;
+                            }
+                            
+                            // Create program property if it doesn't exist
+                            if (!data.program) {
+                                data.program = {
+                                    name: data.name || '-',
+                                    status_message: data.status || '-',
+                                    elapsed_time: 0,
+                                    elapsed_time_formatted: '-',
+                                    time_scale: data.timeScale || 1,
+                                    is_running: data.isRunning || false
+                                };
+                            }
+                            
+                            // Update program status
+                            updateProgramStatus(data.program);
+                            
+                            // Update resource usage
+                            updateResourceUsage(data);
+                            
+                            // Update available triggers
+                            updateTriggers(data.triggers || []);
+                            
+                            // Update timeline data
+                            updateTimelineData(data);
+                        } catch (error) {
+                            console.error("Error in updateStatus processing:", error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error updating status:', error);
+                    });
+            } catch (error) {
+                console.error("Exception in updateStatus:", error);
+            }
+        }
+        
+        function fetchProgramState() {
+            try {
+                return fetch('/api/program_state')
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! Status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Ensure data has the expected structure
+                        if (!data) {
+                            console.warn("Empty response from program_state API");
+                            return {
+                                program: {
+                                    name: '-',
+                                    status_message: 'No data',
+                                    elapsed_time: 0,
+                                    elapsed_time_formatted: '-',
+                                    time_scale: 1,
+                                    is_running: false
+                                },
+                                steps: [],
+                                triggers: []
+                            };
+                        }
+                        
+                        // Ensure program property exists
+                        if (!data.program) {
+                            data.program = {
+                                name: data.name || '-',
+                                status_message: data.status || '-',
+                                elapsed_time: 0,
+                                elapsed_time_formatted: '-',
+                                time_scale: data.timeScale || 1,
+                                is_running: data.isRunning || false
+                            };
+                        }
+                        
+                        return data;
+                    })
+                    .catch(error => {
+                        console.error("Error fetching program state:", error);
+                        throw error; // Re-throw to be caught by the outer try-catch
+                    });
+            } catch (error) {
+                console.error("Exception in fetchProgramState:", error);
+                // Return a default object structure on error
+                return Promise.resolve({
+                    program: {
+                        name: '-',
+                        status_message: 'Error: ' + error.message,
+                        elapsed_time: 0,
+                        elapsed_time_formatted: '-',
+                        time_scale: 1,
+                        is_running: false
+                    },
+                    steps: [],
+                    triggers: []
+                });
+            }
+        }
+        
+        function startStatusUpdates() {
+            // Clear any existing intervals
+            if (updateInterval) {
+                clearInterval(updateInterval);
+            }
+            
+            // Initial update
+            updateStatus();
+            
+            // Set up periodic updates
+            updateInterval = setInterval(updateStatus, 1000);
+        }
+        
+        function startProgram() {
+            fetch('/api/program_start', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Program start response:', data);
+                updateStatus();
+            })
+            .catch(error => {
+                console.error('Error starting program:', error);
+            });
+        }
+        
+        function pauseProgram() {
+            fetch('/api/program_pause', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Program pause response:', data);
+                updateStatus();
+            })
+            .catch(error => {
+                console.error('Error pausing program:', error);
+            });
+        }
+        
+        function resetProgram() {
+            fetch('/api/program_reset', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Program reset response:', data);
+                updateStatus();
+            })
+            .catch(error => {
+                console.error('Error resetting program:', error);
+            });
+        }
+        
+        function changeSpeed(factor) {
+            fetch('/api/program_speed', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ factor: factor })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Speed change response:', data);
+                updateStatus();
+            })
+            .catch(error => {
+                console.error('Error changing speed:', error);
+            });
+        }
+        
+        function triggerStep(triggerId) {
+            fetch('/api/program_trigger', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ trigger: triggerId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Trigger response:', data);
+                updateStatus();
+            })
+            .catch(error => {
+                console.error('Error triggering step:', error);
+            });
+        }
+        
+        // Set up event listeners
+        document.getElementById('startBtn').addEventListener('click', startProgram);
+        document.getElementById('pauseBtn').addEventListener('click', pauseProgram);
+        document.getElementById('resetBtn').addEventListener('click', resetProgram);
+        document.getElementById('speedUpBtn').addEventListener('click', () => changeSpeed(2));
+        document.getElementById('slowDownBtn').addEventListener('click', () => changeSpeed(0.5));
+        
+        // Initialize the visualization when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            initCustomD3Timeline();
+            startStatusUpdates();
+            
+            // Set this to false to disable transitions
+            const enableTransitions = true;
+            
+            // Function to report final step positions after timeline is initialized
+            function reportStepPositions() {
+                setTimeout(() => {
+                    console.log("===== FINAL STEP POSITIONS =====");
+                    const stepElements = document.querySelectorAll('.step');
+                    const positions = {};
+                    
+                    stepElements.forEach(el => {
+                        const stepId = el.getAttribute('data-step-id');
+                        const x = el.getAttribute('x');
+                        positions[stepId] = parseFloat(x);
+                        console.log(`Step ${stepId}: x-position = ${x}`);
+                    });
+                    
+                    // Specifically check toast-cook position
+                    const toastElement = document.querySelector('.step[data-step-id="toast-cook"]');
+                    if (toastElement) {
+                        const toastX = parseFloat(toastElement.getAttribute('x'));
+                        console.log(`TOAST-COOK FINAL POSITION: x = ${toastX}`);
+                        if (toastX <= 10) {
+                            console.error("WARNING: toast-cook position appears to be incorrect (near x=0)");
+                        } else {
+                            console.log("SUCCESS: toast-cook position is away from x=0 as expected");
+                        }
+                    } else {
+                        console.error("Could not find toast-cook step element");
+                    }
+                }, 5000); // Check after 5 seconds to ensure everything is loaded
+            }
+
+            // Initialize the D3 timeline and start status updates
+            function initializeD3Timeline() {
+                const margin = {top: 50, right: 50, bottom: 50, left: 100};
+                const width = document.getElementById('timeline').clientWidth - margin.left - margin.right;
+                const height = 300 - margin.top - margin.bottom;
+                
+                // Create SVG element
+                const svg = d3.select('#timeline')
+                    .append('svg')
+                    .attr('width', width + margin.left + margin.right)
+                    .attr('height', height + margin.top + margin.bottom)
+                    .append('g')
+                    .attr('transform', `translate(${margin.left}, ${margin.top})`);
+                
+                // Create time scale
+                const timeScale = d3.scale.linear()
+                    .domain([0, 60]) // 0 to 60 minutes
+                    .range([0, width]);
+                
+                // Set this to false to disable transitions
+                const enableTransitions = true;
+                
+                // Function to report final step positions after timeline is initialized
+                function reportStepPositions() {
+                    setTimeout(() => {
+                        console.log("===== FINAL STEP POSITIONS =====");
+                        const stepElements = document.querySelectorAll('.step');
+                        const positions = {};
+                        
+                        stepElements.forEach(el => {
+                            const stepId = el.getAttribute('data-step-id');
+                            const x = el.getAttribute('x');
+                            positions[stepId] = parseFloat(x);
+                            console.log(`Step ${stepId}: x-position = ${x}`);
+                        });
+                        
+                        // Specifically check toast-cook position
+                        const toastElement = document.querySelector('.step[data-step-id="toast-cook"]');
+                        if (toastElement) {
+                            const toastX = parseFloat(toastElement.getAttribute('x'));
+                            console.log(`TOAST-COOK FINAL POSITION: x = ${toastX}`);
+                            if (toastX <= 10) {
+                                console.error("WARNING: toast-cook position appears to be incorrect (near x=0)");
+                            } else {
+                                console.log("SUCCESS: toast-cook position is away from x=0 as expected");
+                            }
+                        } else {
+                            console.error("Could not find toast-cook step element");
+                        }
+                    }, 5000); // Check after 5 seconds to ensure everything is loaded
+                }
+                
+                // Call the report function after initialization
+                reportStepPositions();
+            }
+        });
+    </script>
+</body>
+</html>
