@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rhylthyme-web"
+version = "0.1.0"
+description = "Web visualization for Rhylthyme program schedules"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = [
+    "flask>=2.0.0",
+    "pyyaml>=6.0",
+    "anthropic>=0.18.0",
+]
+
+[project.optional-dependencies]
+mcp = ["mcp>=1.0.0"]
+chat = ["anthropic>=0.18.0"]
+all = ["mcp>=1.0.0", "anthropic>=0.18.0"]
+
+[project.scripts]
+rhylthyme-visualize = "rhylthyme_web.web.web_visualizer:main"
+rhylthyme-web = "rhylthyme_web.app:main"
+rhylthyme-mcp = "rhylthyme_web.mcp.server:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DAG Visualization - Academy Awards Ceremony 2024</title>
+    <title>DAG Visualization - Breakfast Schedule</title>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -381,20 +381,20 @@
 <body class="bg-gray-100 font-sans">
     <div class="max-w-7xl mx-auto bg-white rounded-lg shadow-lg p-6">
         <h1 class="text-3xl font-bold text-gray-800 mb-2 pb-2 border-b-2 flex items-center gap-3" style="border-color: #4B46B9;">
-            <i class="fas fa-building text-gray-600" title="Environment Type: event"></i>
-            Academy Awards Ceremony 2024
+            <i class="fas fa-utensils text-gray-600" title="Environment Type: kitchen"></i>
+            Breakfast Schedule
         </h1>
         
         <div class="text-dag-gray italic mb-8 leading-relaxed text-lg">
-            Annual Academy Awards ceremony with variable-length speeches, fixed musical performances, and flexible host segments
+            Coordinated breakfast preparation schedule for scrambled eggs, bacon, and toast
         </div>
         
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
             <div class="flex flex-col items-center text-center">
-                <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Program Duration</span>
+                <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Estimated Total Time</span>
                 <div class="flex flex-col items-center">
-                    <span class="text-blue-600 font-semibold text-sm mb-1">3h30m</span>
-                    <span class="text-dag-green font-semibold text-sm">Est: 52.5 minutes</span>
+                    
+                    <span class="text-dag-green font-semibold text-sm">11.5 minutes</span>
                 </div>
             </div>
             <div class="flex flex-col items-center text-center">
@@ -403,15 +403,15 @@
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Environment Type</span>
-                <span class="text-dag-purple font-semibold text-sm">event</span>
+                <span class="text-dag-purple font-semibold text-sm">kitchen</span>
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Environment</span>
-                <span class="text-dag-purple font-semibold text-sm" title="">awards_theater</span>
+                <span class="text-dag-purple font-semibold text-sm" title="">N/A</span>
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Resource Constraints</span>
-                <span class="text-dag-gray font-semibold text-sm">1</span>
+                <span class="text-dag-gray font-semibold text-sm">3</span>
             </div>
         </div>
         
@@ -701,487 +701,241 @@
     "description": "Program initialization"
   },
   {
-    "id": "opening-monologue",
-    "name": "Opening Monologue",
-    "track": "main-ceremony",
-    "track_name": "Main Ceremony",
+    "id": "eggs-crack-whisk",
+    "name": "Crack and Whisk Eggs",
+    "track": "scrambled-eggs",
+    "track_name": "Scrambled Eggs",
     "type": "step",
-    "description": "Host's opening comedy monologue to set the tone",
-    "task": "broadcast",
-    "duration": "480s",
+    "description": "Crack eggs into a bowl and whisk with salt and pepper",
+    "task": "prep-work",
+    "duration": "60s",
     "preBuffer": {},
-    "postBuffer": {}
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
   },
   {
-    "id": "best-supporting-actor",
-    "name": "Best Supporting Actor",
-    "track": "main-ceremony",
-    "track_name": "Main Ceremony",
+    "id": "eggs-heat-pan",
+    "name": "Heat Pan",
+    "track": "scrambled-eggs",
+    "track_name": "Scrambled Eggs",
     "type": "step",
-    "description": "Award presentation and acceptance speech",
-    "task": "broadcast",
-    "duration": "180-420s (default: 300s)",
+    "description": "Place pan on stove and heat to medium",
+    "task": "stove-burner",
+    "duration": "60-120s (default: 90s)",
     "preBuffer": {},
-    "postBuffer": {}
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
   },
   {
-    "id": "host-segment-1",
-    "name": "Host Segment - Comedy Bit",
-    "track": "main-ceremony",
-    "track_name": "Main Ceremony",
+    "id": "eggs-cook",
+    "name": "Cook Eggs",
+    "track": "scrambled-eggs",
+    "track_name": "Scrambled Eggs",
     "type": "step",
-    "description": "Host fills time with prepared comedy segment",
-    "task": "broadcast",
-    "duration": "120s",
+    "description": "Pour eggs into pan and cook until done",
+    "task": "stove-burner",
+    "duration": "120-180s (default: 150s)",
     "preBuffer": {},
-    "postBuffer": {}
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
   },
   {
-    "id": "best-supporting-actress",
-    "name": "Best Supporting Actress",
-    "track": "main-ceremony",
-    "track_name": "Main Ceremony",
+    "id": "bacon-prep",
+    "name": "Prepare Bacon",
+    "track": "bacon",
+    "track_name": "Bacon",
     "type": "step",
-    "description": "Award presentation and acceptance speech",
-    "task": "broadcast",
-    "duration": "180-480s (default: 270s)",
+    "description": "Place bacon strips in cold pan",
+    "task": "prep-work",
+    "duration": "60s",
     "preBuffer": {},
-    "postBuffer": {}
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
   },
   {
-    "id": "best-actor",
-    "name": "Best Actor",
-    "track": "main-ceremony",
-    "track_name": "Main Ceremony",
+    "id": "bacon-cook",
+    "name": "Cook Bacon",
+    "track": "bacon",
+    "track_name": "Bacon",
     "type": "step",
-    "description": "Award presentation and acceptance speech",
-    "task": "broadcast",
-    "duration": "240-540s (default: 360s)",
+    "description": "Cook bacon, flipping occasionally until crispy",
+    "task": "stove-burner",
+    "duration": "480-720s (default: 600s)",
     "preBuffer": {},
-    "postBuffer": {}
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
   },
   {
-    "id": "host-segment-2",
-    "name": "Host Segment - Audience Interaction",
-    "track": "main-ceremony",
-    "track_name": "Main Ceremony",
+    "id": "toast-cook",
+    "name": "Make Toast",
+    "track": "toast",
+    "track_name": "Toast",
     "type": "step",
-    "description": "Host interacts with audience, can stretch as needed",
-    "task": "broadcast",
-    "duration": "180s",
-    "preBuffer": {},
-    "postBuffer": {}
-  },
-  {
-    "id": "best-actress",
-    "name": "Best Actress",
-    "track": "main-ceremony",
-    "track_name": "Main Ceremony",
-    "type": "step",
-    "description": "Award presentation and acceptance speech",
-    "task": "broadcast",
-    "duration": "240-600s (default: 390s)",
-    "preBuffer": {},
-    "postBuffer": {}
-  },
-  {
-    "id": "best-picture",
-    "name": "Best Picture",
-    "track": "main-ceremony",
-    "track_name": "Main Ceremony",
-    "type": "step",
-    "description": "Final award with producer speeches",
-    "task": "broadcast",
-    "duration": "300-720s (default: 480s)",
-    "preBuffer": {},
-    "postBuffer": {}
-  },
-  {
-    "id": "closing-remarks",
-    "name": "Closing Remarks",
-    "track": "main-ceremony",
-    "track_name": "Main Ceremony",
-    "type": "step",
-    "description": "Host's final words and thank you",
-    "task": "broadcast",
-    "duration": "120s",
-    "preBuffer": {},
-    "postBuffer": {}
-  },
-  {
-    "id": "cinematography",
-    "name": "Best Cinematography",
-    "track": "technical-awards",
-    "track_name": "Technical Awards",
-    "type": "step",
-    "description": "Technical award presentation",
-    "task": "broadcast",
-    "duration": "120-240s (default: 180s)",
-    "preBuffer": {},
-    "postBuffer": {}
-  },
-  {
-    "id": "film-editing",
-    "name": "Best Film Editing",
-    "track": "technical-awards",
-    "track_name": "Technical Awards",
-    "type": "step",
-    "description": "Technical award presentation",
-    "task": "broadcast",
-    "duration": "120-240s (default: 180s)",
-    "preBuffer": {},
-    "postBuffer": {}
-  },
-  {
-    "id": "production-design",
-    "name": "Best Production Design",
-    "track": "technical-awards",
-    "track_name": "Technical Awards",
-    "type": "step",
-    "description": "Technical award presentation",
-    "task": "broadcast",
-    "duration": "120-240s (default: 180s)",
-    "preBuffer": {},
-    "postBuffer": {}
-  },
-  {
-    "id": "musical-performance-1",
-    "name": "Best Original Song Nominee Performance",
-    "track": "entertainment",
-    "track_name": "Musical Performances",
-    "type": "step",
-    "description": "Live performance of nominated song - precisely timed",
-    "task": "broadcast",
+    "description": "Place bread in toaster and toast until golden brown",
+    "task": "toaster",
     "duration": "210s",
     "preBuffer": {},
-    "postBuffer": {}
-  },
-  {
-    "id": "musical-performance-2",
-    "name": "In Memoriam Musical Tribute",
-    "track": "entertainment",
-    "track_name": "Musical Performances",
-    "type": "step",
-    "description": "Musical tribute to deceased industry members",
-    "task": "broadcast",
-    "duration": "240s",
-    "preBuffer": {},
-    "postBuffer": {}
-  },
-  {
-    "id": "commercial-break-1",
-    "name": "Commercial Break 1",
-    "track": "commercial-breaks",
-    "track_name": "Commercial Breaks",
-    "type": "step",
-    "description": "First commercial break for broadcast",
-    "task": "broadcast",
-    "duration": "180s",
-    "preBuffer": {},
-    "postBuffer": {}
-  },
-  {
-    "id": "commercial-break-2",
-    "name": "Commercial Break 2",
-    "track": "commercial-breaks",
-    "track_name": "Commercial Breaks",
-    "type": "step",
-    "description": "Mid-ceremony commercial break",
-    "task": "broadcast",
-    "duration": "180s",
-    "preBuffer": {},
-    "postBuffer": {}
-  },
-  {
-    "id": "commercial-break-3",
-    "name": "Commercial Break 3",
-    "track": "commercial-breaks",
-    "track_name": "Commercial Breaks",
-    "type": "step",
-    "description": "Final commercial break before Best Picture",
-    "task": "broadcast",
-    "duration": "180s",
-    "preBuffer": {},
-    "postBuffer": {}
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
   }
 ];
         const edges = [
   {
     "source": "program_start",
-    "target": "opening-monologue",
+    "target": "eggs-crack-whisk",
     "type": "programStart"
   },
   {
-    "source": "opening-monologue",
-    "target": "best-supporting-actor",
+    "source": "eggs-crack-whisk",
+    "target": "eggs-heat-pan",
     "type": "afterStep"
   },
   {
-    "source": "best-supporting-actor",
-    "target": "host-segment-1",
-    "type": "afterStep"
-  },
-  {
-    "source": "host-segment-1",
-    "target": "best-supporting-actress",
-    "type": "afterStep"
-  },
-  {
-    "source": "musical-performance-1",
-    "target": "best-actor",
-    "type": "afterStep"
-  },
-  {
-    "source": "best-actor",
-    "target": "host-segment-2",
-    "type": "afterStep"
-  },
-  {
-    "source": "host-segment-2",
-    "target": "best-actress",
-    "type": "afterStep"
-  },
-  {
-    "source": "musical-performance-2",
-    "target": "best-picture",
-    "type": "afterStep"
-  },
-  {
-    "source": "best-picture",
-    "target": "closing-remarks",
+    "source": "eggs-heat-pan",
+    "target": "eggs-cook",
     "type": "afterStep"
   },
   {
     "source": "program_start",
-    "target": "cinematography",
+    "target": "bacon-prep",
+    "type": "programStart"
+  },
+  {
+    "source": "bacon-prep",
+    "target": "bacon-cook",
+    "type": "afterStep"
+  },
+  {
+    "source": "program_start",
+    "target": "toast-cook",
     "type": "programStartOffset",
-    "offset": 900
-  },
-  {
-    "source": "cinematography",
-    "target": "film-editing",
-    "type": "afterStep"
-  },
-  {
-    "source": "film-editing",
-    "target": "production-design",
-    "type": "afterStep"
-  },
-  {
-    "source": "best-supporting-actress",
-    "target": "musical-performance-1",
-    "type": "afterStep"
-  },
-  {
-    "source": "best-actress",
-    "target": "musical-performance-2",
-    "type": "afterStep"
-  },
-  {
-    "source": "cinematography",
-    "target": "commercial-break-1",
-    "type": "afterStep"
-  },
-  {
-    "source": "musical-performance-1",
-    "target": "commercial-break-2",
-    "type": "afterStep"
-  },
-  {
-    "source": "production-design",
-    "target": "commercial-break-3",
-    "type": "afterStep"
+    "offset": 480
   }
 ];
         const timelineData = {
   "tracks": [
     {
-      "trackId": "main-ceremony",
-      "name": "Main Ceremony",
+      "trackId": "scrambled-eggs",
+      "name": "Scrambled Eggs",
       "steps": [
         {
-          "stepId": "opening-monologue",
-          "name": "Opening Monologue",
+          "stepId": "eggs-crack-whisk",
+          "name": "Crack and Whisk Eggs",
           "startTime": 0,
-          "duration": 480,
-          "endTime": 480,
-          "description": "Host's opening comedy monologue to set the tone",
-          "task": "broadcast"
+          "duration": 60,
+          "endTime": 60,
+          "description": "Crack eggs into a bowl and whisk with salt and pepper",
+          "task": "prep-work",
+          "flex": {
+            "enabled": false
+          }
         },
         {
-          "stepId": "best-supporting-actor",
-          "name": "Best Supporting Actor",
+          "stepId": "eggs-heat-pan",
+          "name": "Heat Pan",
+          "startTime": 60,
+          "duration": 90,
+          "endTime": 150,
+          "description": "Place pan on stove and heat to medium",
+          "task": "stove-burner",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "eggs-cook",
+          "name": "Cook Eggs",
+          "startTime": 150,
+          "duration": 150,
+          "endTime": 300,
+          "description": "Pour eggs into pan and cook until done",
+          "task": "stove-burner",
+          "flex": {
+            "enabled": false
+          }
+        }
+      ]
+    },
+    {
+      "trackId": "bacon",
+      "name": "Bacon",
+      "steps": [
+        {
+          "stepId": "bacon-prep",
+          "name": "Prepare Bacon",
+          "startTime": 0,
+          "duration": 60,
+          "endTime": 60,
+          "description": "Place bacon strips in cold pan",
+          "task": "prep-work",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "bacon-cook",
+          "name": "Cook Bacon",
+          "startTime": 60,
+          "duration": 600,
+          "endTime": 660,
+          "description": "Cook bacon, flipping occasionally until crispy",
+          "task": "stove-burner",
+          "flex": {
+            "enabled": false
+          }
+        }
+      ]
+    },
+    {
+      "trackId": "toast",
+      "name": "Toast",
+      "steps": [
+        {
+          "stepId": "toast-cook",
+          "name": "Make Toast",
           "startTime": 480,
-          "duration": 300,
-          "endTime": 780,
-          "description": "Award presentation and acceptance speech",
-          "task": "broadcast"
-        },
-        {
-          "stepId": "host-segment-1",
-          "name": "Host Segment - Comedy Bit",
-          "startTime": 780,
-          "duration": 120,
-          "endTime": 900,
-          "description": "Host fills time with prepared comedy segment",
-          "task": "broadcast"
-        },
-        {
-          "stepId": "best-supporting-actress",
-          "name": "Best Supporting Actress",
-          "startTime": 900,
-          "duration": 270,
-          "endTime": 1170,
-          "description": "Award presentation and acceptance speech",
-          "task": "broadcast"
-        },
-        {
-          "stepId": "best-actor",
-          "name": "Best Actor",
-          "startTime": 1380,
-          "duration": 360,
-          "endTime": 1740,
-          "description": "Award presentation and acceptance speech",
-          "task": "broadcast"
-        },
-        {
-          "stepId": "host-segment-2",
-          "name": "Host Segment - Audience Interaction",
-          "startTime": 1740,
-          "duration": 180,
-          "endTime": 1920,
-          "description": "Host interacts with audience, can stretch as needed",
-          "task": "broadcast"
-        },
-        {
-          "stepId": "best-actress",
-          "name": "Best Actress",
-          "startTime": 1920,
-          "duration": 390,
-          "endTime": 2310,
-          "description": "Award presentation and acceptance speech",
-          "task": "broadcast"
-        },
-        {
-          "stepId": "best-picture",
-          "name": "Best Picture",
-          "startTime": 2550,
-          "duration": 480,
-          "endTime": 3030,
-          "description": "Final award with producer speeches",
-          "task": "broadcast"
-        },
-        {
-          "stepId": "closing-remarks",
-          "name": "Closing Remarks",
-          "startTime": 3030,
-          "duration": 120,
-          "endTime": 3150,
-          "description": "Host's final words and thank you",
-          "task": "broadcast"
-        }
-      ]
-    },
-    {
-      "trackId": "technical-awards",
-      "name": "Technical Awards",
-      "steps": [
-        {
-          "stepId": "cinematography",
-          "name": "Best Cinematography",
-          "startTime": 900,
-          "duration": 180,
-          "endTime": 1080,
-          "description": "Technical award presentation",
-          "task": "broadcast"
-        },
-        {
-          "stepId": "film-editing",
-          "name": "Best Film Editing",
-          "startTime": 1080,
-          "duration": 180,
-          "endTime": 1260,
-          "description": "Technical award presentation",
-          "task": "broadcast"
-        },
-        {
-          "stepId": "production-design",
-          "name": "Best Production Design",
-          "startTime": 1260,
-          "duration": 180,
-          "endTime": 1440,
-          "description": "Technical award presentation",
-          "task": "broadcast"
-        }
-      ]
-    },
-    {
-      "trackId": "entertainment",
-      "name": "Musical Performances",
-      "steps": [
-        {
-          "stepId": "musical-performance-1",
-          "name": "Best Original Song Nominee Performance",
-          "startTime": 1170,
           "duration": 210,
-          "endTime": 1380,
-          "description": "Live performance of nominated song - precisely timed",
-          "task": "broadcast"
-        },
-        {
-          "stepId": "musical-performance-2",
-          "name": "In Memoriam Musical Tribute",
-          "startTime": 2310,
-          "duration": 240,
-          "endTime": 2550,
-          "description": "Musical tribute to deceased industry members",
-          "task": "broadcast"
-        }
-      ]
-    },
-    {
-      "trackId": "commercial-breaks",
-      "name": "Commercial Breaks",
-      "steps": [
-        {
-          "stepId": "commercial-break-1",
-          "name": "Commercial Break 1",
-          "startTime": 1080,
-          "duration": 180,
-          "endTime": 1260,
-          "description": "First commercial break for broadcast",
-          "task": "broadcast"
-        },
-        {
-          "stepId": "commercial-break-2",
-          "name": "Commercial Break 2",
-          "startTime": 1380,
-          "duration": 180,
-          "endTime": 1560,
-          "description": "Mid-ceremony commercial break",
-          "task": "broadcast"
-        },
-        {
-          "stepId": "commercial-break-3",
-          "name": "Commercial Break 3",
-          "startTime": 1440,
-          "duration": 180,
-          "endTime": 1620,
-          "description": "Final commercial break before Best Picture",
-          "task": "broadcast"
+          "endTime": 690,
+          "description": "Place bread in toaster and toast until golden brown",
+          "task": "toaster",
+          "flex": {
+            "enabled": false
+          }
         }
       ]
     }
   ],
-  "totalDuration": 3150,
+  "totalDuration": 690,
   "timeScale": "seconds"
 };
         const environmentData = {};
         const resourceConstraints = [
   {
-    "task": "broadcast",
+    "task": "stove-burner",
+    "maxConcurrent": 2,
+    "description": "Maximum number of stove burners that can be used simultaneously"
+  },
+  {
+    "task": "prep-work",
+    "maxConcurrent": 2,
+    "description": "General preparation work"
+  },
+  {
+    "task": "toaster",
     "maxConcurrent": 1,
-    "description": "Live television broadcast - only one segment can be on air at a time"
+    "description": "Toaster usage"
   }
 ];
         
@@ -1742,6 +1496,42 @@
                 });
             });
             timelineData.totalDuration = maxEndTime;
+            
+            // Update the duration display
+            updateDurationDisplay();
+        }
+        
+        function updateDurationDisplay() {
+            // Format the new duration
+            function formatDuration(seconds) {
+                if (seconds >= 3600) {
+                    const hours = seconds / 3600;
+                    return hours % 1 === 0 ? `${Math.floor(hours)} hours` : `${hours.toFixed(1)} hours`;
+                } else if (seconds >= 60) {
+                    const minutes = seconds / 60;
+                    return minutes % 1 === 0 ? `${Math.floor(minutes)} minutes` : `${minutes.toFixed(1)} minutes`;
+                } else {
+                    return `${Math.floor(seconds)} seconds`;
+                }
+            }
+            
+            const newFormattedDuration = formatDuration(timelineData.totalDuration || 0);
+            
+            // Find the duration display element - it's the green text in the first column
+            const durationElement = document.querySelector('.text-dag-green');
+            if (durationElement) {
+                // Check if this is the program duration scenario (has blue text above)
+                const parentDiv = durationElement.closest('.flex.flex-col.items-center');
+                const hasFixedDuration = parentDiv && parentDiv.querySelector('.text-blue-600');
+                
+                if (hasFixedDuration) {
+                    // Update estimated duration text (Est: X)
+                    durationElement.textContent = `Est: ${newFormattedDuration}`;
+                } else {
+                    // Update regular estimated duration
+                    durationElement.textContent = newFormattedDuration;
+                }
+            }
         }
         
         function resetPlan() {
@@ -1756,6 +1546,9 @@
                 
                 // Refresh all views
                 refreshAllViews();
+                
+                // Update duration display
+                updateDurationDisplay();
                 
                 showToast('Timeline reset to original plan', 'info');
             } else {
@@ -2863,7 +2656,7 @@
         });
         
         // Timeline Visualization
-        const margin = { top: 50, right: 50, bottom: 30, left: 200 };
+        const margin = { top: 50, right: 50, bottom: 30, left: 152 };
         const minTimelineWidth = 800; // Minimum timeline width
         
         // Timeline scale management
@@ -3099,7 +2892,21 @@
                         const track = timelineTracks.find(t => t.steps.includes(d));
                         return trackScale(track.trackId) + trackHeight / 2;
                     })
-                    .text(d => d.name.length > 20 ? d.name.substring(0, 20) + '...' : d.name);
+                    .text(d => {
+                        // Calculate available width for text based on step duration
+                        const availableWidth = timeScale(d.duration) - 8; // 8px padding
+                        const avgCharWidth = 7; // Approximate character width in pixels
+                        const maxChars = Math.floor(availableWidth / avgCharWidth);
+                        
+                        // Only truncate if necessary and if the step is reasonably wide
+                        if (maxChars > 10 && d.name.length > maxChars) {
+                            return d.name.substring(0, maxChars - 3) + '...';
+                        } else if (maxChars <= 10 && d.name.length > 10) {
+                            // For very narrow steps, use a minimal truncation
+                            return d.name.substring(0, Math.max(3, maxChars - 3)) + '...';
+                        }
+                        return d.name;
+                    });
             }
             
             // Add flex icons for flexible steps
@@ -3119,7 +2926,7 @@
                     .attr("font-size", "10px")
                     .attr("fill", "#10b981")
                     .style("pointer-events", "none")
-                    .text(""); // FontAwesome expand arrows icon
+                    .html("&#xf065;"); // FontAwesome expand arrows icon
             }
             
             // Create buffer bars with desaturated colors (skip at very small scales for performance)
@@ -4947,6 +4754,9 @@
                 });
             });
             timelineData.totalDuration = maxEndTime;
+            
+            // Update the duration display
+            updateDurationDisplay();
         }
         
         function refreshAllViews() {

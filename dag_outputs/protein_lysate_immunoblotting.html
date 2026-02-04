@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DAG Visualization - Flex Steps and Auto-Planning Test</title>
+    <title>DAG Visualization - Protein Lysate and Immunoblotting</title>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -381,18 +381,21 @@
 <body class="bg-gray-100 font-sans">
     <div class="max-w-7xl mx-auto bg-white rounded-lg shadow-lg p-6">
         <h1 class="text-3xl font-bold text-gray-800 mb-2 pb-2 border-b-2 flex items-center gap-3" style="border-color: #4B46B9;">
-            <i class="fas fa-building text-gray-600" title="Environment Type: N/A"></i>
-            Flex Steps and Auto-Planning Test
+            <i class="fas fa-flask text-gray-600" title="Environment Type: laboratory"></i>
+            Protein Lysate and Immunoblotting
         </h1>
         
         <div class="text-dag-gray italic mb-8 leading-relaxed text-lg">
-            Test program demonstrating flexible steps and auto-planning strategies
+            Laboratory protocol for creating protein lysates and performing immunoblotting in RAW 264.7 cells, adapted from protocols.io protocol 5qpvo9bmdv4o
         </div>
         
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Estimated Total Time</span>
-                <span class="text-dag-green font-semibold text-sm">45 minutes</span>
+                <div class="flex flex-col items-center">
+                    
+                    <span class="text-dag-green font-semibold text-sm">42.3 hours</span>
+                </div>
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Version</span>
@@ -400,15 +403,15 @@
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Environment Type</span>
-                <span class="text-dag-purple font-semibold text-sm">N/A</span>
+                <span class="text-dag-purple font-semibold text-sm">laboratory</span>
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Environment</span>
-                <span class="text-dag-purple font-semibold text-sm" title="">home_kitchen</span>
+                <span class="text-dag-purple font-semibold text-sm" title="">N/A</span>
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Resource Constraints</span>
-                <span class="text-dag-gray font-semibold text-sm">2</span>
+                <span class="text-dag-gray font-semibold text-sm">11</span>
             </div>
         </div>
         
@@ -698,200 +701,669 @@
     "description": "Program initialization"
   },
   {
-    "id": "gather-ingredients",
-    "name": "Gather Ingredients",
-    "track": "prep",
-    "track_name": "Preparation Track",
+    "id": "plate-cells",
+    "name": "Plate RAW 264.7 Cells",
+    "track": "cell-preparation",
+    "track_name": "Cell Preparation (Day 0)",
     "type": "step",
-    "description": "Collect all ingredients from pantry and fridge",
-    "task": "prep-work",
-    "duration": "300s",
-    "preBuffer": {},
-    "postBuffer": {}
+    "description": "Plate 1 x 10^6 RAW 264.7 cells per well in a 6-well dish",
+    "task": "cell-culture",
+    "duration": "1800s",
+    "preBuffer": {
+      "duration": "15m",
+      "description": "Prepare media and gather materials",
+      "tasks": [
+        "prep-work"
+      ]
+    },
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
   },
   {
-    "id": "prep-vegetables",
-    "name": "Prep Vegetables",
-    "track": "prep",
-    "track_name": "Preparation Track",
+    "id": "add-treatment",
+    "name": "Add Compound Treatment",
+    "track": "treatment-lysis",
+    "track_name": "Treatment and Lysis (Day 1)",
     "type": "step",
-    "description": "Wash, chop, and prepare vegetables",
-    "task": "prep-work",
-    "duration": "600-1200s (default: 900s)",
-    "preBuffer": {},
-    "postBuffer": {}
-  },
-  {
-    "id": "preheat-oven",
-    "name": "Preheat Oven",
-    "track": "cooking",
-    "track_name": "Cooking Track",
-    "type": "step",
-    "description": "Preheat oven to 375\u00b0F",
-    "task": "oven",
+    "description": "Add the indicated compound at the provided concentration in fresh DMEM media",
+    "task": "cell-culture",
     "duration": "600s",
     "preBuffer": {},
-    "postBuffer": {}
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
   },
   {
-    "id": "cook-main-dish",
-    "name": "Cook Main Dish",
-    "track": "cooking",
-    "track_name": "Cooking Track",
+    "id": "wash-cells",
+    "name": "Wash Cells with PBS",
+    "track": "treatment-lysis",
+    "track_name": "Treatment and Lysis (Day 1)",
     "type": "step",
-    "description": "Cook the main course in the oven",
-    "task": "oven",
+    "description": "Wash each dish 2X with cold PBS on ice",
+    "task": "cell-culture",
+    "duration": "300s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "lyse-cells",
+    "name": "Cell Lysis",
+    "track": "treatment-lysis",
+    "track_name": "Treatment and Lysis (Day 1)",
+    "type": "step",
+    "description": "Remove PBS, scrape each well with 50 \u00b5L of ice-cold lysis buffer, transfer to Eppendorf tubes",
+    "task": "bench-space",
+    "duration": "600s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "incubate-lysates",
+    "name": "Incubate Lysates on Ice",
+    "track": "treatment-lysis",
+    "track_name": "Treatment and Lysis (Day 1)",
+    "type": "step",
+    "description": "Incubate lysates on ice for 5 minutes",
+    "task": "bench-space",
+    "duration": "300s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "centrifuge-lysates",
+    "name": "Centrifuge Lysates",
+    "track": "treatment-lysis",
+    "track_name": "Treatment and Lysis (Day 1)",
+    "type": "step",
+    "description": "Centrifuge lysates at 14000 rpm, 4\u00b0C for 8 minutes",
+    "task": "centrifuge",
+    "duration": "480s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "measure-protein",
+    "name": "Measure Protein Concentration",
+    "track": "treatment-lysis",
+    "track_name": "Treatment and Lysis (Day 1)",
+    "type": "step",
+    "description": "Measure protein concentration using Coomassie Plus Protein Assay Reagent",
+    "task": "spectrophotometer",
     "duration": "1800s",
     "preBuffer": {},
-    "postBuffer": {}
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
   },
   {
-    "id": "prepare-salad",
-    "name": "Prepare Salad",
-    "track": "sides",
-    "track_name": "Side Dishes",
+    "id": "prepare-samples",
+    "name": "Prepare Samples with Laemmli Buffer",
+    "track": "treatment-lysis",
+    "track_name": "Treatment and Lysis (Day 1)",
     "type": "step",
-    "description": "Make a fresh garden salad",
-    "task": "prep-work",
-    "duration": "600s",
+    "description": "Mix supernatant 1:1 with Laemmli Buffer and heat at 95\u00b0C for 3 minutes",
+    "task": "bench-space",
+    "duration": "480s",
     "preBuffer": {},
-    "postBuffer": {}
+    "postBuffer": {
+      "duration": "10m",
+      "description": "Cool samples and store",
+      "tasks": [
+        "storage"
+      ]
+    },
+    "flex": {
+      "enabled": false
+    }
   },
   {
-    "id": "warm-bread",
-    "name": "Warm Bread",
-    "track": "sides",
-    "track_name": "Side Dishes",
+    "id": "run-gel",
+    "name": "Run SDS-PAGE",
+    "track": "electrophoresis",
+    "track_name": "Gel Electrophoresis",
     "type": "step",
-    "description": "Warm bread in the oven",
-    "task": "oven",
-    "duration": "300s",
+    "description": "Perform electrophoresis using 20-30 \u03bcG protein in 4-15% miniPROTEAN TGX gels",
+    "task": "electrophoresis",
+    "duration": "2400-3600s (default: 3000s)",
+    "preBuffer": {
+      "duration": "15m",
+      "description": "Set up gel apparatus and prepare buffer",
+      "tasks": [
+        "prep-work"
+      ]
+    },
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "transfer-membrane",
+    "name": "Transfer to Membrane",
+    "track": "electrophoresis",
+    "track_name": "Gel Electrophoresis",
+    "type": "step",
+    "description": "Transfer gels onto 0.45 \u03bcm nitrocellulose membrane at 100V for 1 hour",
+    "task": "electrophoresis",
+    "duration": "3600s",
     "preBuffer": {},
-    "postBuffer": {}
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "block-membrane",
+    "name": "Block Membrane",
+    "track": "immunoblotting",
+    "track_name": "Immunoblotting (Days 1-2)",
+    "type": "step",
+    "description": "Block membranes in 5% non-fat dry milk in TBST for 30 minutes",
+    "task": "bench-space",
+    "duration": "1800s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "primary-antibody",
+    "name": "Primary Antibody Incubation",
+    "track": "immunoblotting",
+    "track_name": "Immunoblotting (Days 1-2)",
+    "type": "step",
+    "description": "Add primary antibodies in 5% BSA TBST at 4\u00b0C overnight",
+    "task": "incubator",
+    "duration": "43200s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "wash-primary",
+    "name": "Wash After Primary",
+    "track": "immunoblotting",
+    "track_name": "Immunoblotting (Days 1-2)",
+    "type": "step",
+    "description": "Wash membranes 2X for 10 minutes with TBST",
+    "task": "bench-space",
+    "duration": "1200s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "secondary-antibody",
+    "name": "Secondary Antibody Incubation",
+    "track": "immunoblotting",
+    "track_name": "Immunoblotting (Days 1-2)",
+    "type": "step",
+    "description": "Add secondary antibodies in TBST for 1 hour at room temperature",
+    "task": "bench-space",
+    "duration": "3600s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "wash-secondary",
+    "name": "Wash After Secondary",
+    "track": "immunoblotting",
+    "track_name": "Immunoblotting (Days 1-2)",
+    "type": "step",
+    "description": "Wash membranes 3X for 10 minutes with TBST",
+    "task": "bench-space",
+    "duration": "1800s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "develop-detect",
+    "name": "Develop and Image",
+    "track": "immunoblotting",
+    "track_name": "Immunoblotting (Days 1-2)",
+    "type": "step",
+    "description": "Develop membranes via chemiluminescence and image with Biorad Chemidoc",
+    "task": "imaging-system",
+    "duration": "900-1800s (default: 1200s)",
+    "preBuffer": {},
+    "postBuffer": {
+      "duration": "15m",
+      "description": "Data analysis and cleanup",
+      "tasks": [
+        "data-analysis",
+        "cleanup"
+      ]
+    },
+    "flex": {
+      "enabled": false
+    }
   }
 ];
         const edges = [
   {
     "source": "program_start",
-    "target": "gather-ingredients",
+    "target": "plate-cells",
     "type": "programStart"
   },
   {
-    "source": "gather-ingredients",
-    "target": "prep-vegetables",
-    "type": "afterStep"
-  },
-  {
     "source": "program_start",
-    "target": "preheat-oven",
-    "type": "programStart"
-  },
-  {
-    "source": "preheat-oven",
-    "target": "cook-main-dish",
-    "type": "afterStep"
-  },
-  {
-    "source": "program_start",
-    "target": "prepare-salad",
+    "target": "add-treatment",
     "type": "programStartOffset",
-    "offset": 900
+    "offset": 86400
   },
   {
-    "source": "cook-main-dish",
-    "target": "warm-bread",
+    "source": "add-treatment",
+    "target": "wash-cells",
+    "type": "afterStep"
+  },
+  {
+    "source": "wash-cells",
+    "target": "lyse-cells",
+    "type": "afterStep"
+  },
+  {
+    "source": "lyse-cells",
+    "target": "incubate-lysates",
+    "type": "afterStep"
+  },
+  {
+    "source": "incubate-lysates",
+    "target": "centrifuge-lysates",
+    "type": "afterStep"
+  },
+  {
+    "source": "centrifuge-lysates",
+    "target": "measure-protein",
+    "type": "afterStep"
+  },
+  {
+    "source": "measure-protein",
+    "target": "prepare-samples",
+    "type": "afterStep"
+  },
+  {
+    "source": "prepare-samples",
+    "target": "run-gel",
+    "type": "afterStep"
+  },
+  {
+    "source": "run-gel",
+    "target": "transfer-membrane",
+    "type": "afterStep"
+  },
+  {
+    "source": "transfer-membrane",
+    "target": "block-membrane",
+    "type": "afterStep"
+  },
+  {
+    "source": "block-membrane",
+    "target": "primary-antibody",
+    "type": "afterStep"
+  },
+  {
+    "source": "primary-antibody",
+    "target": "wash-primary",
+    "type": "afterStep"
+  },
+  {
+    "source": "wash-primary",
+    "target": "secondary-antibody",
+    "type": "afterStep"
+  },
+  {
+    "source": "secondary-antibody",
+    "target": "wash-secondary",
+    "type": "afterStep"
+  },
+  {
+    "source": "wash-secondary",
+    "target": "develop-detect",
     "type": "afterStep"
   }
 ];
         const timelineData = {
   "tracks": [
     {
-      "trackId": "prep",
-      "name": "Preparation Track",
+      "trackId": "cell-preparation",
+      "name": "Cell Preparation (Day 0)",
       "steps": [
         {
-          "stepId": "gather-ingredients",
-          "name": "Gather Ingredients",
-          "startTime": 0,
-          "duration": 300,
-          "endTime": 300,
-          "description": "Collect all ingredients from pantry and fridge",
-          "task": "prep-work"
-        },
-        {
-          "stepId": "prep-vegetables",
-          "name": "Prep Vegetables",
-          "startTime": 300,
-          "duration": 900,
-          "endTime": 1200,
-          "description": "Wash, chop, and prepare vegetables",
-          "task": "prep-work"
-        }
-      ]
-    },
-    {
-      "trackId": "cooking",
-      "name": "Cooking Track",
-      "steps": [
-        {
-          "stepId": "preheat-oven",
-          "name": "Preheat Oven",
-          "startTime": 0,
-          "duration": 600,
-          "endTime": 600,
-          "description": "Preheat oven to 375\u00b0F",
-          "task": "oven"
-        },
-        {
-          "stepId": "cook-main-dish",
-          "name": "Cook Main Dish",
-          "startTime": 600,
-          "duration": 1800,
-          "endTime": 2400,
-          "description": "Cook the main course in the oven",
-          "task": "oven"
-        }
-      ]
-    },
-    {
-      "trackId": "sides",
-      "name": "Side Dishes",
-      "steps": [
-        {
-          "stepId": "prepare-salad",
-          "name": "Prepare Salad",
+          "stepId": "plate-cells",
+          "name": "Plate RAW 264.7 Cells",
           "startTime": 900,
+          "duration": 1800,
+          "endTime": 2700,
+          "description": "Plate 1 x 10^6 RAW 264.7 cells per well in a 6-well dish",
+          "task": "cell-culture",
+          "flex": {
+            "enabled": false
+          },
+          "preBuffer": {
+            "startTime": 0,
+            "duration": 900,
+            "endTime": 900,
+            "description": "Prepare media and gather materials",
+            "tasks": [
+              "prep-work"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "trackId": "treatment-lysis",
+      "name": "Treatment and Lysis (Day 1)",
+      "steps": [
+        {
+          "stepId": "add-treatment",
+          "name": "Add Compound Treatment",
+          "startTime": 87300,
           "duration": 600,
-          "endTime": 1500,
-          "description": "Make a fresh garden salad",
-          "task": "prep-work"
+          "endTime": 87900,
+          "description": "Add the indicated compound at the provided concentration in fresh DMEM media",
+          "task": "cell-culture",
+          "flex": {
+            "enabled": false
+          }
         },
         {
-          "stepId": "warm-bread",
-          "name": "Warm Bread",
-          "startTime": 2400,
+          "stepId": "wash-cells",
+          "name": "Wash Cells with PBS",
+          "startTime": 87900,
           "duration": 300,
-          "endTime": 2700,
-          "description": "Warm bread in the oven",
-          "task": "oven"
+          "endTime": 88200,
+          "description": "Wash each dish 2X with cold PBS on ice",
+          "task": "cell-culture",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "lyse-cells",
+          "name": "Cell Lysis",
+          "startTime": 88200,
+          "duration": 600,
+          "endTime": 88800,
+          "description": "Remove PBS, scrape each well with 50 \u00b5L of ice-cold lysis buffer, transfer to Eppendorf tubes",
+          "task": "bench-space",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "incubate-lysates",
+          "name": "Incubate Lysates on Ice",
+          "startTime": 88800,
+          "duration": 300,
+          "endTime": 89100,
+          "description": "Incubate lysates on ice for 5 minutes",
+          "task": "bench-space",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "centrifuge-lysates",
+          "name": "Centrifuge Lysates",
+          "startTime": 89100,
+          "duration": 480,
+          "endTime": 89580,
+          "description": "Centrifuge lysates at 14000 rpm, 4\u00b0C for 8 minutes",
+          "task": "centrifuge",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "measure-protein",
+          "name": "Measure Protein Concentration",
+          "startTime": 89580,
+          "duration": 1800,
+          "endTime": 91380,
+          "description": "Measure protein concentration using Coomassie Plus Protein Assay Reagent",
+          "task": "spectrophotometer",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "prepare-samples",
+          "name": "Prepare Samples with Laemmli Buffer",
+          "startTime": 91380,
+          "duration": 480,
+          "endTime": 91860,
+          "description": "Mix supernatant 1:1 with Laemmli Buffer and heat at 95\u00b0C for 3 minutes",
+          "task": "bench-space",
+          "flex": {
+            "enabled": false
+          },
+          "postBuffer": {
+            "startTime": 91860,
+            "duration": 600,
+            "endTime": 92460,
+            "description": "Cool samples and store",
+            "tasks": [
+              "storage"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "trackId": "electrophoresis",
+      "name": "Gel Electrophoresis",
+      "steps": [
+        {
+          "stepId": "run-gel",
+          "name": "Run SDS-PAGE",
+          "startTime": 91860,
+          "duration": 3000,
+          "endTime": 94860,
+          "description": "Perform electrophoresis using 20-30 \u03bcG protein in 4-15% miniPROTEAN TGX gels",
+          "task": "electrophoresis",
+          "flex": {
+            "enabled": false
+          },
+          "preBuffer": {
+            "startTime": 90960,
+            "duration": 900,
+            "endTime": 91860,
+            "description": "Set up gel apparatus and prepare buffer",
+            "tasks": [
+              "prep-work"
+            ]
+          }
+        },
+        {
+          "stepId": "transfer-membrane",
+          "name": "Transfer to Membrane",
+          "startTime": 94860,
+          "duration": 3600,
+          "endTime": 98460,
+          "description": "Transfer gels onto 0.45 \u03bcm nitrocellulose membrane at 100V for 1 hour",
+          "task": "electrophoresis",
+          "flex": {
+            "enabled": false
+          }
+        }
+      ]
+    },
+    {
+      "trackId": "immunoblotting",
+      "name": "Immunoblotting (Days 1-2)",
+      "steps": [
+        {
+          "stepId": "block-membrane",
+          "name": "Block Membrane",
+          "startTime": 98460,
+          "duration": 1800,
+          "endTime": 100260,
+          "description": "Block membranes in 5% non-fat dry milk in TBST for 30 minutes",
+          "task": "bench-space",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "primary-antibody",
+          "name": "Primary Antibody Incubation",
+          "startTime": 100260,
+          "duration": 43200,
+          "endTime": 143460,
+          "description": "Add primary antibodies in 5% BSA TBST at 4\u00b0C overnight",
+          "task": "incubator",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "wash-primary",
+          "name": "Wash After Primary",
+          "startTime": 143460,
+          "duration": 1200,
+          "endTime": 144660,
+          "description": "Wash membranes 2X for 10 minutes with TBST",
+          "task": "bench-space",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "secondary-antibody",
+          "name": "Secondary Antibody Incubation",
+          "startTime": 144660,
+          "duration": 3600,
+          "endTime": 148260,
+          "description": "Add secondary antibodies in TBST for 1 hour at room temperature",
+          "task": "bench-space",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "wash-secondary",
+          "name": "Wash After Secondary",
+          "startTime": 148260,
+          "duration": 1800,
+          "endTime": 150060,
+          "description": "Wash membranes 3X for 10 minutes with TBST",
+          "task": "bench-space",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "develop-detect",
+          "name": "Develop and Image",
+          "startTime": 150060,
+          "duration": 1200,
+          "endTime": 151260,
+          "description": "Develop membranes via chemiluminescence and image with Biorad Chemidoc",
+          "task": "imaging-system",
+          "flex": {
+            "enabled": false
+          },
+          "postBuffer": {
+            "startTime": 151260,
+            "duration": 900,
+            "endTime": 152160,
+            "description": "Data analysis and cleanup",
+            "tasks": [
+              "data-analysis",
+              "cleanup"
+            ]
+          }
         }
       ]
     }
   ],
-  "totalDuration": 2700,
+  "totalDuration": 152160,
   "timeScale": "seconds"
 };
         const environmentData = {};
         const resourceConstraints = [
   {
-    "task": "prep-work",
-    "maxConcurrent": 1,
-    "description": "Preparation workspace and tools"
+    "task": "cell-culture",
+    "maxConcurrent": 2,
+    "description": "Maximum number of cell culture hood stations"
   },
   {
-    "task": "oven",
+    "task": "centrifuge",
     "maxConcurrent": 1,
-    "description": "Kitchen oven"
+    "description": "Single centrifuge available"
+  },
+  {
+    "task": "electrophoresis",
+    "maxConcurrent": 2,
+    "description": "Two gel electrophoresis rigs available"
+  },
+  {
+    "task": "spectrophotometer",
+    "maxConcurrent": 1,
+    "description": "Single spectrophotometer available"
+  },
+  {
+    "task": "incubator",
+    "maxConcurrent": 1,
+    "description": "Single 4\u00b0C incubator available"
+  },
+  {
+    "task": "imaging-system",
+    "maxConcurrent": 1,
+    "description": "Single Biorad Chemidoc imaging system"
+  },
+  {
+    "task": "storage",
+    "maxConcurrent": 3,
+    "description": "Sample storage capacity (freezers, refrigerators)"
+  },
+  {
+    "task": "bench-space",
+    "maxConcurrent": 4,
+    "description": "Laboratory bench workspace"
+  },
+  {
+    "task": "prep-work",
+    "maxConcurrent": 2,
+    "description": "Preparation workspace"
+  },
+  {
+    "task": "data-analysis",
+    "maxConcurrent": 2,
+    "description": "Data analysis workstations"
+  },
+  {
+    "task": "cleanup",
+    "maxConcurrent": 2,
+    "description": "Cleanup and waste disposal"
   }
 ];
         
@@ -1452,6 +1924,42 @@
                 });
             });
             timelineData.totalDuration = maxEndTime;
+            
+            // Update the duration display
+            updateDurationDisplay();
+        }
+        
+        function updateDurationDisplay() {
+            // Format the new duration
+            function formatDuration(seconds) {
+                if (seconds >= 3600) {
+                    const hours = seconds / 3600;
+                    return hours % 1 === 0 ? `${Math.floor(hours)} hours` : `${hours.toFixed(1)} hours`;
+                } else if (seconds >= 60) {
+                    const minutes = seconds / 60;
+                    return minutes % 1 === 0 ? `${Math.floor(minutes)} minutes` : `${minutes.toFixed(1)} minutes`;
+                } else {
+                    return `${Math.floor(seconds)} seconds`;
+                }
+            }
+            
+            const newFormattedDuration = formatDuration(timelineData.totalDuration || 0);
+            
+            // Find the duration display element - it's the green text in the first column
+            const durationElement = document.querySelector('.text-dag-green');
+            if (durationElement) {
+                // Check if this is the program duration scenario (has blue text above)
+                const parentDiv = durationElement.closest('.flex.flex-col.items-center');
+                const hasFixedDuration = parentDiv && parentDiv.querySelector('.text-blue-600');
+                
+                if (hasFixedDuration) {
+                    // Update estimated duration text (Est: X)
+                    durationElement.textContent = `Est: ${newFormattedDuration}`;
+                } else {
+                    // Update regular estimated duration
+                    durationElement.textContent = newFormattedDuration;
+                }
+            }
         }
         
         function resetPlan() {
@@ -1466,6 +1974,9 @@
                 
                 // Refresh all views
                 refreshAllViews();
+                
+                // Update duration display
+                updateDurationDisplay();
                 
                 showToast('Timeline reset to original plan', 'info');
             } else {
@@ -2573,7 +3084,7 @@
         });
         
         // Timeline Visualization
-        const margin = { top: 50, right: 50, bottom: 30, left: 176 };
+        const margin = { top: 50, right: 50, bottom: 30, left: 256 };
         const minTimelineWidth = 800; // Minimum timeline width
         
         // Timeline scale management
@@ -2809,7 +3320,21 @@
                         const track = timelineTracks.find(t => t.steps.includes(d));
                         return trackScale(track.trackId) + trackHeight / 2;
                     })
-                    .text(d => d.name.length > 20 ? d.name.substring(0, 20) + '...' : d.name);
+                    .text(d => {
+                        // Calculate available width for text based on step duration
+                        const availableWidth = timeScale(d.duration) - 8; // 8px padding
+                        const avgCharWidth = 7; // Approximate character width in pixels
+                        const maxChars = Math.floor(availableWidth / avgCharWidth);
+                        
+                        // Only truncate if necessary and if the step is reasonably wide
+                        if (maxChars > 10 && d.name.length > maxChars) {
+                            return d.name.substring(0, maxChars - 3) + '...';
+                        } else if (maxChars <= 10 && d.name.length > 10) {
+                            // For very narrow steps, use a minimal truncation
+                            return d.name.substring(0, Math.max(3, maxChars - 3)) + '...';
+                        }
+                        return d.name;
+                    });
             }
             
             // Add flex icons for flexible steps
@@ -2829,7 +3354,7 @@
                     .attr("font-size", "10px")
                     .attr("fill", "#10b981")
                     .style("pointer-events", "none")
-                    .text(""); // FontAwesome expand arrows icon
+                    .html("&#xf065;"); // FontAwesome expand arrows icon
             }
             
             // Create buffer bars with desaturated colors (skip at very small scales for performance)
@@ -4657,6 +5182,9 @@
                 });
             });
             timelineData.totalDuration = maxEndTime;
+            
+            // Update the duration display
+            updateDurationDisplay();
         }
         
         function refreshAllViews() {

@@ -1,498 +1,9 @@
-#!/usr/bin/env python3
-"""
-DAG (Directed Acyclic Graph) visualizer for Rhylthyme programs.
-
-This module generates static D3.js visualizations showing the task dependency
-structure of Rhylthyme programs as directed acyclic graphs.
-"""
-
-import os
-import json
-import argparse
-import webbrowser
-from pathlib import Path
-from typing import Dict, Any, List, Set, Tuple
-
-from .program_runner import load_program_file
-from .environment_icons import get_environment_icon
-
-def extract_step_dependencies(program: Dict[str, Any]) -> Tuple[List[Dict], List[Dict]]:
-    """
-    Extract steps and their dependencies from a program.
-    
-    Args:
-        program: The program dictionary
-        
-    Returns:
-        Tuple of (nodes, edges) where:
-        - nodes: List of step nodes with id, name, track info
-        - edges: List of dependency edges with source and target step IDs
-    """
-    nodes = []
-    edges = []
-    step_to_track = {}
-    
-    # Create a virtual start node
-    nodes.append({
-        'id': 'program_start',
-        'name': 'Program Start',
-        'track': 'system',
-        'type': 'start',
-        'description': 'Program initialization'
-    })
-    
-    # Extract all steps and track their relationships
-    for track in program.get('tracks', []):
-        track_id = track.get('trackId', 'unknown')
-        track_name = track.get('name', 'Unknown Track')
-        
-        for step in track.get('steps', []):
-            step_id = step.get('stepId')
-            step_name = step.get('name', step_id)
-            step_description = step.get('description', '')
-            task = step.get('task', step.get('tasks', ['']))
-            if isinstance(task, list):
-                task = ', '.join(task) if task else ''
-            
-            # Extract duration information
-            duration = step.get('duration', {})
-            duration_info = None
-            if duration:
-                duration_type = duration.get('type')
-                if duration_type == 'fixed':
-                    seconds = duration.get('seconds', 0)
-                    duration_info = f"{seconds}s"
-                elif duration_type == 'variable':
-                    min_sec = duration.get('minSeconds', 0)
-                    max_sec = duration.get('maxSeconds', 0)
-                    default_sec = duration.get('defaultSeconds', 0)
-                    duration_info = f"{min_sec}-{max_sec}s (default: {default_sec}s)"
-            
-            # Extract buffer information
-            pre_buffer = step.get('preBuffer', {})
-            post_buffer = step.get('postBuffer', {})
-            
-            step_to_track[step_id] = track_id
-            
-            nodes.append({
-                'id': step_id,
-                'name': step_name,
-                'track': track_id,
-                'track_name': track_name,
-                'type': 'step',
-                'description': step_description,
-                'task': task,
-                'duration': duration_info,
-                'preBuffer': pre_buffer,
-                'postBuffer': post_buffer,
-                'flex': step.get('flex', {'enabled': False})
-            })
-            
-            # Analyze start trigger to create edges
-            start_trigger = step.get('startTrigger', {})
-            edges.extend(extract_dependencies_from_trigger(start_trigger, step_id))
-    
-    return nodes, edges
-
-def extract_dependencies_from_trigger(trigger: Dict[str, Any], target_step: str) -> List[Dict]:
-    """
-    Extract dependency edges from a start trigger.
-    
-    Args:
-        trigger: The start trigger configuration
-        target_step: The step ID that this trigger applies to
-        
-    Returns:
-        List of edge dictionaries with source and target
-    """
-    edges = []
-    
-    trigger_type = trigger.get('type')
-    
-    if trigger_type == 'programStart':
-        edges.append({
-            'source': 'program_start',
-            'target': target_step,
-            'type': 'programStart'
-        })
-    elif trigger_type == 'afterStep':
-        source_step = trigger.get('stepId')
-        if source_step:
-            edges.append({
-                'source': source_step,
-                'target': target_step,
-                'type': 'afterStep'
-            })
-    elif trigger_type == 'afterStepWithBuffer':
-        source_step = trigger.get('stepId')
-        buffer_seconds = trigger.get('bufferSeconds', 0)
-        if source_step:
-            edges.append({
-                'source': source_step,
-                'target': target_step,
-                'type': 'afterStepWithBuffer',
-                'buffer': buffer_seconds
-            })
-    elif trigger_type == 'programStartOffset':
-        offset_seconds = trigger.get('offsetSeconds', 0)
-        edges.append({
-            'source': 'program_start',
-            'target': target_step,
-            'type': 'programStartOffset',
-            'offset': offset_seconds
-        })
-    elif trigger_type == 'manual':
-        # Manual triggers don't have dependencies from other steps
-        pass
-    elif trigger.get('logic'):  # Multiple triggers with logic
-        logic_type = trigger.get('logic')
-        triggers = trigger.get('triggers', [])
-        for sub_trigger in triggers:
-            edges.extend(extract_dependencies_from_trigger(sub_trigger, target_step))
-    
-    return edges
-
-def parse_duration_string(duration_str) -> int:
-    """Parse duration string like '30s', '2m', '1h' or integer into seconds."""
-    if not duration_str:
-        return 0
-    
-    # Handle integer input directly
-    if isinstance(duration_str, int):
-        return duration_str
-    
-    duration_str = str(duration_str).strip().lower()
-    
-    # Handle complex format like "90s)" by removing trailing characters
-    if duration_str.endswith(')'):
-        duration_str = duration_str[:-1]
-    
-    if duration_str.endswith('s'):
-        return int(duration_str[:-1])
-    elif duration_str.endswith('m'):
-        return int(duration_str[:-1]) * 60
-    elif duration_str.endswith('h'):
-        return int(duration_str[:-1]) * 3600
-    else:
-        # Try to extract just the number part if no unit
-        import re
-        match = re.search(r'\d+', duration_str)
-        if match:
-            return int(match.group())
-        return 0
-
-def calculate_timeline_data(nodes: List[Dict], edges: List[Dict]) -> Dict:
-    """
-    Calculate timeline data for steps based on dependencies and durations.
-    
-    Args:
-        nodes: List of step nodes
-        edges: List of dependency edges
-        
-    Returns:
-        Dictionary with timeline data including tracks, steps with calculated start times
-    """
-    # Build dependency graph
-    step_dependencies = {}
-    step_offsets = {}
-    step_buffers = {}
-    
-    for edge in edges:
-        target = edge['target']
-        if target not in step_dependencies:
-            step_dependencies[target] = []
-        
-        if edge['type'] == 'programStartOffset':
-            step_offsets[target] = edge.get('offset', 0)
-        elif edge['type'] == 'afterStepWithBuffer':
-            step_buffers[(edge['source'], target)] = edge.get('buffer', 0)
-        
-        if edge['source'] != 'program_start':
-            step_dependencies[target].append(edge['source'])
-    
-    # Calculate start times for each step
-    step_start_times = {'program_start': 0}
-    step_durations = {}
-    step_buffers = {}
-    
-    # Extract durations and buffer information from nodes
-    for node in nodes:
-        if node['type'] == 'step':
-            duration_str = node.get('duration', '0s')
-            if duration_str:
-                # Parse duration - handle both "60s" and "120-180s (default: 150s)" formats
-                if 'default:' in duration_str:
-                    # Variable duration, extract default
-                    default_part = duration_str.split('default:')[1].strip()
-                    duration = parse_duration_string(default_part)
-                else:
-                    # Fixed duration
-                    duration = parse_duration_string(duration_str)
-                step_durations[node['id']] = duration
-            
-            # Extract buffer durations
-            pre_buffer = node.get('preBuffer', {})
-            post_buffer = node.get('postBuffer', {})
-            
-            step_buffers[node['id']] = {
-                'preBuffer': pre_buffer,
-                'postBuffer': post_buffer
-            }
-    
-    # Topological sort to calculate start times
-    visited = set()
-    temp_visited = set()
-    
-    def calculate_start_time(step_id):
-        if step_id in temp_visited:
-            return 0  # Cycle detected, return 0
-        if step_id in visited:
-            return step_start_times.get(step_id, 0)
-        
-        temp_visited.add(step_id)
-        
-        max_predecessor_end = 0
-        
-        # Handle program start offset
-        if step_id in step_offsets:
-            max_predecessor_end = step_offsets[step_id]
-        
-        # Handle dependencies
-        for predecessor in step_dependencies.get(step_id, []):
-            pred_start = calculate_start_time(predecessor)
-            pred_duration = step_durations.get(predecessor, 0)
-            pred_end = pred_start + pred_duration
-            
-            # Add buffer if exists
-            buffer = step_buffers.get((predecessor, step_id), 0)
-            pred_end += buffer
-            
-            max_predecessor_end = max(max_predecessor_end, pred_end)
-        
-        step_start_times[step_id] = max_predecessor_end
-        temp_visited.remove(step_id)
-        visited.add(step_id)
-        
-        return max_predecessor_end
-    
-    # Calculate start times for all steps
-    for node in nodes:
-        if node['type'] == 'step':
-            calculate_start_time(node['id'])
-    
-    # Group steps by track
-    tracks = {}
-    for node in nodes:
-        if node['type'] == 'step':
-            track_id = node['track']
-            if track_id not in tracks:
-                tracks[track_id] = {
-                    'trackId': track_id,
-                    'name': node['track_name'],
-                    'steps': []
-                }
-            
-            start_time = step_start_times.get(node['id'], 0)
-            duration = step_durations.get(node['id'], 0)
-            
-            # Get buffer information
-            buffers = step_buffers.get(node['id'], {})
-            pre_buffer = buffers.get('preBuffer', {})
-            post_buffer = buffers.get('postBuffer', {})
-            
-            # Parse buffer durations
-            pre_buffer_duration = parse_duration_string(pre_buffer.get('duration', ''))
-            post_buffer_duration = parse_duration_string(post_buffer.get('duration', ''))
-            
-            # Calculate buffer start times
-            pre_buffer_start = start_time - pre_buffer_duration if pre_buffer_duration > 0 else None
-            post_buffer_start = start_time + duration if post_buffer_duration > 0 else None
-            
-            step_data = {
-                'stepId': node['id'],
-                'name': node['name'],
-                'startTime': start_time,
-                'duration': duration,
-                'endTime': start_time + duration,
-                'description': node.get('description', ''),
-                'task': node.get('task', ''),
-                'flex': node.get('flex', {'enabled': False})
-            }
-            
-            # Add buffer information if present
-            if pre_buffer_duration > 0:
-                step_data['preBuffer'] = {
-                    'startTime': pre_buffer_start,
-                    'duration': pre_buffer_duration,
-                    'endTime': start_time,
-                    'description': pre_buffer.get('description', ''),
-                    'tasks': pre_buffer.get('tasks', [])
-                }
-            
-            if post_buffer_duration > 0:
-                step_data['postBuffer'] = {
-                    'startTime': post_buffer_start,
-                    'duration': post_buffer_duration,
-                    'endTime': post_buffer_start + post_buffer_duration,
-                    'description': post_buffer.get('description', ''),
-                    'tasks': post_buffer.get('tasks', [])
-                }
-            
-            tracks[track_id]['steps'].append(step_data)
-    
-    # Calculate total timeline duration including all buffers
-    max_end_time = 0
-    min_start_time = 0
-    
-    for track_data in tracks.values():
-        for step in track_data['steps']:
-            # Check for pre-buffer extending timeline start
-            if 'preBuffer' in step:
-                min_start_time = min(min_start_time, step['preBuffer']['startTime'])
-            
-            # Check main step and post-buffer extending timeline end
-            max_end_time = max(max_end_time, step['endTime'])
-            if 'postBuffer' in step:
-                max_end_time = max(max_end_time, step['postBuffer']['endTime'])
-    
-    # Adjust all times to start from 0 if there are negative pre-buffer times
-    time_offset = -min_start_time if min_start_time < 0 else 0
-    
-    if time_offset > 0:
-        for track_data in tracks.values():
-            for step in track_data['steps']:
-                step['startTime'] += time_offset
-                step['endTime'] += time_offset
-                if 'preBuffer' in step:
-                    step['preBuffer']['startTime'] += time_offset
-                    step['preBuffer']['endTime'] += time_offset
-                if 'postBuffer' in step:
-                    step['postBuffer']['startTime'] += time_offset
-                    step['postBuffer']['endTime'] += time_offset
-    
-    total_duration = max_end_time + time_offset
-    
-    return {
-        'tracks': list(tracks.values()),
-        'totalDuration': total_duration,
-        'timeScale': 'seconds'
-    }
-
-def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[str, Any], environment_data: Dict[str, Any] = None, resource_constraints: List[Dict[str, Any]] = None) -> str:
-    """
-    Generate HTML with D3.js DAG visualization.
-    
-    Args:
-        nodes: List of step nodes
-        edges: List of dependency edges
-        program_data: The full program data dictionary
-        environment_data: The environment data dictionary (optional)
-        resource_constraints: List of resource constraints (optional)
-        
-    Returns:
-        HTML string with embedded D3.js visualization
-    """
-    
-    # Extract program metadata
-    program_name = program_data.get('name', 'Unknown Program')
-    program_description = program_data.get('description', '')
-    program_version = program_data.get('version', 'N/A')
-    environment_type = program_data.get('environmentType', 'N/A')
-    default_environment = program_data.get('defaultEnvironment', 'N/A')
-    
-    # Get environment icon
-    environment_icon = get_environment_icon(environment_type) if environment_type != 'N/A' else 'fa-building'
-    
-    # Add environment information if available
-    environment_name = 'N/A'
-    environment_description = ''
-    if environment_data:
-        environment_name = environment_data.get('name', environment_data.get('environmentId', 'N/A'))
-        environment_description = environment_data.get('description', '')
-    elif program_data.get('environment'):
-        environment_name = program_data.get('environment')
-    
-    # Convert data to JSON for embedding
-    nodes_json = json.dumps(nodes, indent=2)
-    edges_json = json.dumps(edges, indent=2)
-    
-    # Calculate timeline data
-    timeline_data = calculate_timeline_data(nodes, edges)
-    timeline_json = json.dumps(timeline_data, indent=2)
-    
-    # Prepare environment and resource data for JavaScript
-    environment_json = json.dumps(environment_data or {}, indent=2)
-    
-    # Transform resource constraints to expected format for JavaScript
-    transformed_constraints = []
-    for constraint in (resource_constraints or []):
-        # Handle both new format (name/capacity) and old format (task/maxConcurrent)
-        if 'name' in constraint and 'capacity' in constraint:
-            # New format - transform to JavaScript expected format
-            transformed_constraints.append({
-                'task': constraint['name'],
-                'maxConcurrent': constraint['capacity'],
-                'description': constraint.get('description', '')
-            })
-        elif 'task' in constraint and 'maxConcurrent' in constraint:
-            # Old format - use as is
-            transformed_constraints.append(constraint)
-    
-    resource_constraints_json = json.dumps(transformed_constraints, indent=2)
-    
-    # Calculate dynamic left margin based on longest track name
-    max_track_name_length = 0
-    if timeline_data.get('tracks'):
-        for track in timeline_data['tracks']:
-            track_name = track.get('name', '')
-            max_track_name_length = max(max_track_name_length, len(track_name))
-    
-    # Estimate pixels needed for track names (approximately 8px per character + padding)
-    estimated_track_label_width = max(120, max_track_name_length * 8 + 40)
-    dynamic_left_margin = min(estimated_track_label_width, 300)  # Cap at 300px to avoid extreme widths
-    
-    # Format total duration for display
-    total_duration = timeline_data.get('totalDuration', 0)
-    
-    def format_duration(seconds):
-        if seconds >= 3600:
-            hours = seconds / 3600
-            return f"{hours:.1f} hours" if hours != int(hours) else f"{int(hours)} hours"
-        elif seconds >= 60:
-            minutes = seconds / 60
-            return f"{minutes:.1f} minutes" if minutes != int(minutes) else f"{int(minutes)} minutes"
-        else:
-            return f"{int(seconds)} seconds"
-    
-    formatted_duration = format_duration(total_duration)
-    
-    # Check for program fixed duration
-    program_duration_text = ""
-    if program_data.get('duration'):
-        duration_config = program_data['duration']
-        if duration_config.get('type') == 'fixed':
-            if duration_config.get('seconds'):
-                program_duration_seconds = duration_config['seconds']
-                program_duration_text = format_duration(program_duration_seconds)
-            elif duration_config.get('timeString'):
-                program_duration_text = duration_config['timeString']
-    
-    # Generate relevant preset buttons based on total duration
-    preset_buttons = []
-    duration_minutes = total_duration / 60
-    
-    # Define all possible presets
-    all_presets = [2, 5, 15, 30, 60, 120, 240, 480]
-
-    preset_buttons_html = '\n                    '.join(preset_buttons)
-    
-    # Build the HTML template using string formatting to avoid f-string conflicts with JavaScript
-    html_template = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DAG Visualization - """ + program_name + """</title>
+    <title>DAG Visualization - Rat Psychopharmacology Study</title>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -509,9 +20,7 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
                 }
             }
         }
-    </script>"""
-    
-    html_template += """
+    </script>
     <style>
         /* Custom styles for D3 elements that can't use Tailwind classes */
         .node {
@@ -870,41 +379,39 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
-    <div class="max-w-7xl mx-auto bg-white rounded-lg shadow-lg p-6">"""
-    
-    html_template += f"""
+    <div class="max-w-7xl mx-auto bg-white rounded-lg shadow-lg p-6">
         <h1 class="text-3xl font-bold text-gray-800 mb-2 pb-2 border-b-2 flex items-center gap-3" style="border-color: #4B46B9;">
-            <i class="fas {environment_icon} text-gray-600" title="Environment Type: {environment_type}"></i>
-            {program_name}
+            <i class="fas fa-flask text-gray-600" title="Environment Type: laboratory"></i>
+            Rat Psychopharmacology Study
         </h1>
         
         <div class="text-dag-gray italic mb-8 leading-relaxed text-lg">
-            {program_description}
+            Comprehensive psychopharmacology research protocol for studying drug effects in laboratory rats
         </div>
         
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
             <div class="flex flex-col items-center text-center">
-                <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">{"Program Duration" if program_duration_text else "Estimated Total Time"}</span>
+                <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Estimated Total Time</span>
                 <div class="flex flex-col items-center">
-                    {f'<span class="text-blue-600 font-semibold text-sm mb-1">{program_duration_text}</span>' if program_duration_text else ''}
-                    <span class="text-dag-green font-semibold text-sm">{f"Est: {formatted_duration}" if program_duration_text else formatted_duration}</span>
+                    
+                    <span class="text-dag-green font-semibold text-sm">51 minutes</span>
                 </div>
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Version</span>
-                <span class="font-semibold text-sm" style="color: #4B46B9;">{program_version}</span>
+                <span class="font-semibold text-sm" style="color: #4B46B9;">1.0.0</span>
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Environment Type</span>
-                <span class="text-dag-purple font-semibold text-sm">{environment_type}</span>
+                <span class="text-dag-purple font-semibold text-sm">laboratory</span>
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Environment</span>
-                <span class="text-dag-purple font-semibold text-sm" title="{environment_description}">{environment_name}</span>
+                <span class="text-dag-purple font-semibold text-sm" title="">N/A</span>
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Resource Constraints</span>
-                <span class="text-dag-gray font-semibold text-sm">{len(resource_constraints or [])}</span>
+                <span class="text-dag-gray font-semibold text-sm">4</span>
             </div>
         </div>
         
@@ -1128,7 +635,7 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
                         <div class="text-xs text-gray-600 font-bold min-w-20 text-center" id="scale-info">🔍 Scale: 1.0x</div>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap" id="preset-buttons-container" style="display: none;">
-                        {preset_buttons_html}
+                        
                     </div>
                     <div class="flex items-center gap-2">
                         <div class="flex items-center gap-1 border-r border-gray-300 pr-2">
@@ -1182,16 +689,1237 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
             <strong class="text-gray-800">Tracks:</strong>
             <div id="legend-items" class="mt-2"></div>
         </div>
-    </div>"""
-    
-    html_template += """
+    </div>
     <script>
         // Data
-        const nodes = """ + nodes_json + """;
-        const edges = """ + edges_json + """;
-        const timelineData = """ + timeline_json + """;
-        const environmentData = """ + environment_json + """;
-        const resourceConstraints = """ + resource_constraints_json + """;
+        const nodes = [
+  {
+    "id": "program_start",
+    "name": "Program Start",
+    "track": "system",
+    "type": "start",
+    "description": "Program initialization"
+  },
+  {
+    "id": "saline-saline-pretreatment",
+    "name": "Pretreatment: Saline Injection",
+    "track": "saline-saline",
+    "track_name": "Saline Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Inject saline and wait for 30 minutes",
+    "task": "injection",
+    "duration": "1860s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "saline-saline-treatment",
+    "name": "Treatment: Saline Injection",
+    "track": "saline-saline",
+    "track_name": "Saline Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Inject saline and wait for 5 minutes",
+    "task": "injection",
+    "duration": "360s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "saline-saline-2dg",
+    "name": "2-DG Injection",
+    "track": "saline-saline",
+    "track_name": "Saline Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Inject 2-DG and wait for 5 minutes",
+    "task": "injection",
+    "duration": "360s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "saline-saline-sacrifice",
+    "name": "Sacrifice",
+    "track": "saline-saline",
+    "track_name": "Saline Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Sacrifice the rat",
+    "task": "sacrifice-station",
+    "duration": "120s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "saline-saline-brain-removal",
+    "name": "Brain Removal",
+    "track": "saline-saline",
+    "track_name": "Saline Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Remove the brain",
+    "task": "dissection",
+    "duration": "180s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "saline-saline-brain-freeze",
+    "name": "Brain Freezing",
+    "track": "saline-saline",
+    "track_name": "Saline Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Freeze the brain for preservation",
+    "task": "freezer",
+    "duration": "180s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "saline-ketamine-pretreatment",
+    "name": "Pretreatment: Saline Injection",
+    "track": "saline-ketamine",
+    "track_name": "Saline Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Inject saline and wait for 30 minutes",
+    "task": "injection",
+    "duration": "1860s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "saline-ketamine-treatment",
+    "name": "Treatment: Ketamine Injection",
+    "track": "saline-ketamine",
+    "track_name": "Saline Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Inject ketamine and wait for 5 minutes",
+    "task": "injection",
+    "duration": "360s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "saline-ketamine-2dg",
+    "name": "2-DG Injection",
+    "track": "saline-ketamine",
+    "track_name": "Saline Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Inject 2-DG and wait for 5 minutes",
+    "task": "injection",
+    "duration": "360s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "saline-ketamine-sacrifice",
+    "name": "Sacrifice",
+    "track": "saline-ketamine",
+    "track_name": "Saline Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Sacrifice the rat",
+    "task": "sacrifice-station",
+    "duration": "120s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "saline-ketamine-brain-removal",
+    "name": "Brain Removal",
+    "track": "saline-ketamine",
+    "track_name": "Saline Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Remove the brain",
+    "task": "dissection",
+    "duration": "180s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "saline-ketamine-brain-freeze",
+    "name": "Brain Freezing",
+    "track": "saline-ketamine",
+    "track_name": "Saline Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Freeze the brain for preservation",
+    "task": "freezer",
+    "duration": "180s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine5-saline-pretreatment",
+    "name": "Pretreatment: Clozapine 5mg Injection",
+    "track": "clozapine5-saline",
+    "track_name": "Clozapine 5mg Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Inject clozapine 5mg and wait for 30 minutes",
+    "task": "injection",
+    "duration": "1860s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine5-saline-treatment",
+    "name": "Treatment: Saline Injection",
+    "track": "clozapine5-saline",
+    "track_name": "Clozapine 5mg Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Inject saline and wait for 5 minutes",
+    "task": "injection",
+    "duration": "360s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine5-saline-2dg",
+    "name": "2-DG Injection",
+    "track": "clozapine5-saline",
+    "track_name": "Clozapine 5mg Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Inject 2-DG and wait for 5 minutes",
+    "task": "injection",
+    "duration": "360s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine5-saline-sacrifice",
+    "name": "Sacrifice",
+    "track": "clozapine5-saline",
+    "track_name": "Clozapine 5mg Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Sacrifice the rat",
+    "task": "sacrifice-station",
+    "duration": "120s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine5-saline-brain-removal",
+    "name": "Brain Removal",
+    "track": "clozapine5-saline",
+    "track_name": "Clozapine 5mg Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Remove the brain",
+    "task": "dissection",
+    "duration": "180s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine5-saline-brain-freeze",
+    "name": "Brain Freezing",
+    "track": "clozapine5-saline",
+    "track_name": "Clozapine 5mg Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Freeze the brain for preservation",
+    "task": "freezer",
+    "duration": "180s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine5-ketamine-pretreatment",
+    "name": "Pretreatment: Clozapine 5mg Injection",
+    "track": "clozapine5-ketamine",
+    "track_name": "Clozapine 5mg Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Inject clozapine 5mg and wait for 30 minutes",
+    "task": "injection",
+    "duration": "1860s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine5-ketamine-treatment",
+    "name": "Treatment: Ketamine Injection",
+    "track": "clozapine5-ketamine",
+    "track_name": "Clozapine 5mg Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Inject ketamine and wait for 5 minutes",
+    "task": "injection",
+    "duration": "360s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine5-ketamine-2dg",
+    "name": "2-DG Injection",
+    "track": "clozapine5-ketamine",
+    "track_name": "Clozapine 5mg Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Inject 2-DG and wait for 5 minutes",
+    "task": "injection",
+    "duration": "360s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine5-ketamine-sacrifice",
+    "name": "Sacrifice",
+    "track": "clozapine5-ketamine",
+    "track_name": "Clozapine 5mg Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Sacrifice the rat",
+    "task": "sacrifice-station",
+    "duration": "120s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine5-ketamine-brain-removal",
+    "name": "Brain Removal",
+    "track": "clozapine5-ketamine",
+    "track_name": "Clozapine 5mg Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Remove the brain",
+    "task": "dissection",
+    "duration": "180s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine5-ketamine-brain-freeze",
+    "name": "Brain Freezing",
+    "track": "clozapine5-ketamine",
+    "track_name": "Clozapine 5mg Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Freeze the brain for preservation",
+    "task": "freezer",
+    "duration": "180s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine10-saline-pretreatment",
+    "name": "Pretreatment: Clozapine 10mg Injection",
+    "track": "clozapine10-saline",
+    "track_name": "Clozapine 10mg Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Inject clozapine 10mg and wait for 30 minutes",
+    "task": "injection",
+    "duration": "1860s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine10-saline-treatment",
+    "name": "Treatment: Saline Injection",
+    "track": "clozapine10-saline",
+    "track_name": "Clozapine 10mg Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Inject saline and wait for 5 minutes",
+    "task": "injection",
+    "duration": "360s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine10-saline-2dg",
+    "name": "2-DG Injection",
+    "track": "clozapine10-saline",
+    "track_name": "Clozapine 10mg Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Inject 2-DG and wait for 5 minutes",
+    "task": "injection",
+    "duration": "360s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine10-saline-sacrifice",
+    "name": "Sacrifice",
+    "track": "clozapine10-saline",
+    "track_name": "Clozapine 10mg Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Sacrifice the rat",
+    "task": "sacrifice-station",
+    "duration": "120s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine10-saline-brain-removal",
+    "name": "Brain Removal",
+    "track": "clozapine10-saline",
+    "track_name": "Clozapine 10mg Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Remove the brain",
+    "task": "dissection",
+    "duration": "180s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine10-saline-brain-freeze",
+    "name": "Brain Freezing",
+    "track": "clozapine10-saline",
+    "track_name": "Clozapine 10mg Pretreatment + Saline Treatment",
+    "type": "step",
+    "description": "Freeze the brain for preservation",
+    "task": "freezer",
+    "duration": "180s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine10-ketamine-pretreatment",
+    "name": "Pretreatment: Clozapine 10mg Injection",
+    "track": "clozapine10-ketamine",
+    "track_name": "Clozapine 10mg Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Inject clozapine 10mg and wait for 30 minutes",
+    "task": "injection",
+    "duration": "1860s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine10-ketamine-treatment",
+    "name": "Treatment: Ketamine Injection",
+    "track": "clozapine10-ketamine",
+    "track_name": "Clozapine 10mg Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Inject ketamine and wait for 5 minutes",
+    "task": "injection",
+    "duration": "360s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine10-ketamine-2dg",
+    "name": "2-DG Injection",
+    "track": "clozapine10-ketamine",
+    "track_name": "Clozapine 10mg Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Inject 2-DG and wait for 5 minutes",
+    "task": "injection",
+    "duration": "360s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine10-ketamine-sacrifice",
+    "name": "Sacrifice",
+    "track": "clozapine10-ketamine",
+    "track_name": "Clozapine 10mg Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Sacrifice the rat",
+    "task": "sacrifice-station",
+    "duration": "120s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine10-ketamine-brain-removal",
+    "name": "Brain Removal",
+    "track": "clozapine10-ketamine",
+    "track_name": "Clozapine 10mg Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Remove the brain",
+    "task": "dissection",
+    "duration": "180s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "clozapine10-ketamine-brain-freeze",
+    "name": "Brain Freezing",
+    "track": "clozapine10-ketamine",
+    "track_name": "Clozapine 10mg Pretreatment + Ketamine Treatment",
+    "type": "step",
+    "description": "Freeze the brain for preservation",
+    "task": "freezer",
+    "duration": "180s",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  }
+];
+        const edges = [
+  {
+    "source": "program_start",
+    "target": "saline-saline-pretreatment",
+    "type": "programStart"
+  },
+  {
+    "source": "saline-saline-pretreatment",
+    "target": "saline-saline-treatment",
+    "type": "afterStep"
+  },
+  {
+    "source": "saline-saline-treatment",
+    "target": "saline-saline-2dg",
+    "type": "afterStep"
+  },
+  {
+    "source": "saline-saline-2dg",
+    "target": "saline-saline-sacrifice",
+    "type": "afterStep"
+  },
+  {
+    "source": "saline-saline-sacrifice",
+    "target": "saline-saline-brain-removal",
+    "type": "afterStep"
+  },
+  {
+    "source": "saline-saline-brain-removal",
+    "target": "saline-saline-brain-freeze",
+    "type": "afterStep"
+  },
+  {
+    "source": "program_start",
+    "target": "saline-ketamine-pretreatment",
+    "type": "programStart"
+  },
+  {
+    "source": "saline-ketamine-pretreatment",
+    "target": "saline-ketamine-treatment",
+    "type": "afterStep"
+  },
+  {
+    "source": "saline-ketamine-treatment",
+    "target": "saline-ketamine-2dg",
+    "type": "afterStep"
+  },
+  {
+    "source": "saline-ketamine-2dg",
+    "target": "saline-ketamine-sacrifice",
+    "type": "afterStep"
+  },
+  {
+    "source": "saline-ketamine-sacrifice",
+    "target": "saline-ketamine-brain-removal",
+    "type": "afterStep"
+  },
+  {
+    "source": "saline-ketamine-brain-removal",
+    "target": "saline-ketamine-brain-freeze",
+    "type": "afterStep"
+  },
+  {
+    "source": "program_start",
+    "target": "clozapine5-saline-pretreatment",
+    "type": "programStart"
+  },
+  {
+    "source": "clozapine5-saline-pretreatment",
+    "target": "clozapine5-saline-treatment",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine5-saline-treatment",
+    "target": "clozapine5-saline-2dg",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine5-saline-2dg",
+    "target": "clozapine5-saline-sacrifice",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine5-saline-sacrifice",
+    "target": "clozapine5-saline-brain-removal",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine5-saline-brain-removal",
+    "target": "clozapine5-saline-brain-freeze",
+    "type": "afterStep"
+  },
+  {
+    "source": "program_start",
+    "target": "clozapine5-ketamine-pretreatment",
+    "type": "programStart"
+  },
+  {
+    "source": "clozapine5-ketamine-pretreatment",
+    "target": "clozapine5-ketamine-treatment",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine5-ketamine-treatment",
+    "target": "clozapine5-ketamine-2dg",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine5-ketamine-2dg",
+    "target": "clozapine5-ketamine-sacrifice",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine5-ketamine-sacrifice",
+    "target": "clozapine5-ketamine-brain-removal",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine5-ketamine-brain-removal",
+    "target": "clozapine5-ketamine-brain-freeze",
+    "type": "afterStep"
+  },
+  {
+    "source": "program_start",
+    "target": "clozapine10-saline-pretreatment",
+    "type": "programStart"
+  },
+  {
+    "source": "clozapine10-saline-pretreatment",
+    "target": "clozapine10-saline-treatment",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine10-saline-treatment",
+    "target": "clozapine10-saline-2dg",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine10-saline-2dg",
+    "target": "clozapine10-saline-sacrifice",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine10-saline-sacrifice",
+    "target": "clozapine10-saline-brain-removal",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine10-saline-brain-removal",
+    "target": "clozapine10-saline-brain-freeze",
+    "type": "afterStep"
+  },
+  {
+    "source": "program_start",
+    "target": "clozapine10-ketamine-pretreatment",
+    "type": "programStart"
+  },
+  {
+    "source": "clozapine10-ketamine-pretreatment",
+    "target": "clozapine10-ketamine-treatment",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine10-ketamine-treatment",
+    "target": "clozapine10-ketamine-2dg",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine10-ketamine-2dg",
+    "target": "clozapine10-ketamine-sacrifice",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine10-ketamine-sacrifice",
+    "target": "clozapine10-ketamine-brain-removal",
+    "type": "afterStep"
+  },
+  {
+    "source": "clozapine10-ketamine-brain-removal",
+    "target": "clozapine10-ketamine-brain-freeze",
+    "type": "afterStep"
+  }
+];
+        const timelineData = {
+  "tracks": [
+    {
+      "trackId": "saline-saline",
+      "name": "Saline Pretreatment + Saline Treatment",
+      "steps": [
+        {
+          "stepId": "saline-saline-pretreatment",
+          "name": "Pretreatment: Saline Injection",
+          "startTime": 0,
+          "duration": 1860,
+          "endTime": 1860,
+          "description": "Inject saline and wait for 30 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "saline-saline-treatment",
+          "name": "Treatment: Saline Injection",
+          "startTime": 1860,
+          "duration": 360,
+          "endTime": 2220,
+          "description": "Inject saline and wait for 5 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "saline-saline-2dg",
+          "name": "2-DG Injection",
+          "startTime": 2220,
+          "duration": 360,
+          "endTime": 2580,
+          "description": "Inject 2-DG and wait for 5 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "saline-saline-sacrifice",
+          "name": "Sacrifice",
+          "startTime": 2580,
+          "duration": 120,
+          "endTime": 2700,
+          "description": "Sacrifice the rat",
+          "task": "sacrifice-station",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "saline-saline-brain-removal",
+          "name": "Brain Removal",
+          "startTime": 2700,
+          "duration": 180,
+          "endTime": 2880,
+          "description": "Remove the brain",
+          "task": "dissection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "saline-saline-brain-freeze",
+          "name": "Brain Freezing",
+          "startTime": 2880,
+          "duration": 180,
+          "endTime": 3060,
+          "description": "Freeze the brain for preservation",
+          "task": "freezer",
+          "flex": {
+            "enabled": false
+          }
+        }
+      ]
+    },
+    {
+      "trackId": "saline-ketamine",
+      "name": "Saline Pretreatment + Ketamine Treatment",
+      "steps": [
+        {
+          "stepId": "saline-ketamine-pretreatment",
+          "name": "Pretreatment: Saline Injection",
+          "startTime": 0,
+          "duration": 1860,
+          "endTime": 1860,
+          "description": "Inject saline and wait for 30 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "saline-ketamine-treatment",
+          "name": "Treatment: Ketamine Injection",
+          "startTime": 1860,
+          "duration": 360,
+          "endTime": 2220,
+          "description": "Inject ketamine and wait for 5 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "saline-ketamine-2dg",
+          "name": "2-DG Injection",
+          "startTime": 2220,
+          "duration": 360,
+          "endTime": 2580,
+          "description": "Inject 2-DG and wait for 5 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "saline-ketamine-sacrifice",
+          "name": "Sacrifice",
+          "startTime": 2580,
+          "duration": 120,
+          "endTime": 2700,
+          "description": "Sacrifice the rat",
+          "task": "sacrifice-station",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "saline-ketamine-brain-removal",
+          "name": "Brain Removal",
+          "startTime": 2700,
+          "duration": 180,
+          "endTime": 2880,
+          "description": "Remove the brain",
+          "task": "dissection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "saline-ketamine-brain-freeze",
+          "name": "Brain Freezing",
+          "startTime": 2880,
+          "duration": 180,
+          "endTime": 3060,
+          "description": "Freeze the brain for preservation",
+          "task": "freezer",
+          "flex": {
+            "enabled": false
+          }
+        }
+      ]
+    },
+    {
+      "trackId": "clozapine5-saline",
+      "name": "Clozapine 5mg Pretreatment + Saline Treatment",
+      "steps": [
+        {
+          "stepId": "clozapine5-saline-pretreatment",
+          "name": "Pretreatment: Clozapine 5mg Injection",
+          "startTime": 0,
+          "duration": 1860,
+          "endTime": 1860,
+          "description": "Inject clozapine 5mg and wait for 30 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine5-saline-treatment",
+          "name": "Treatment: Saline Injection",
+          "startTime": 1860,
+          "duration": 360,
+          "endTime": 2220,
+          "description": "Inject saline and wait for 5 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine5-saline-2dg",
+          "name": "2-DG Injection",
+          "startTime": 2220,
+          "duration": 360,
+          "endTime": 2580,
+          "description": "Inject 2-DG and wait for 5 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine5-saline-sacrifice",
+          "name": "Sacrifice",
+          "startTime": 2580,
+          "duration": 120,
+          "endTime": 2700,
+          "description": "Sacrifice the rat",
+          "task": "sacrifice-station",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine5-saline-brain-removal",
+          "name": "Brain Removal",
+          "startTime": 2700,
+          "duration": 180,
+          "endTime": 2880,
+          "description": "Remove the brain",
+          "task": "dissection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine5-saline-brain-freeze",
+          "name": "Brain Freezing",
+          "startTime": 2880,
+          "duration": 180,
+          "endTime": 3060,
+          "description": "Freeze the brain for preservation",
+          "task": "freezer",
+          "flex": {
+            "enabled": false
+          }
+        }
+      ]
+    },
+    {
+      "trackId": "clozapine5-ketamine",
+      "name": "Clozapine 5mg Pretreatment + Ketamine Treatment",
+      "steps": [
+        {
+          "stepId": "clozapine5-ketamine-pretreatment",
+          "name": "Pretreatment: Clozapine 5mg Injection",
+          "startTime": 0,
+          "duration": 1860,
+          "endTime": 1860,
+          "description": "Inject clozapine 5mg and wait for 30 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine5-ketamine-treatment",
+          "name": "Treatment: Ketamine Injection",
+          "startTime": 1860,
+          "duration": 360,
+          "endTime": 2220,
+          "description": "Inject ketamine and wait for 5 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine5-ketamine-2dg",
+          "name": "2-DG Injection",
+          "startTime": 2220,
+          "duration": 360,
+          "endTime": 2580,
+          "description": "Inject 2-DG and wait for 5 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine5-ketamine-sacrifice",
+          "name": "Sacrifice",
+          "startTime": 2580,
+          "duration": 120,
+          "endTime": 2700,
+          "description": "Sacrifice the rat",
+          "task": "sacrifice-station",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine5-ketamine-brain-removal",
+          "name": "Brain Removal",
+          "startTime": 2700,
+          "duration": 180,
+          "endTime": 2880,
+          "description": "Remove the brain",
+          "task": "dissection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine5-ketamine-brain-freeze",
+          "name": "Brain Freezing",
+          "startTime": 2880,
+          "duration": 180,
+          "endTime": 3060,
+          "description": "Freeze the brain for preservation",
+          "task": "freezer",
+          "flex": {
+            "enabled": false
+          }
+        }
+      ]
+    },
+    {
+      "trackId": "clozapine10-saline",
+      "name": "Clozapine 10mg Pretreatment + Saline Treatment",
+      "steps": [
+        {
+          "stepId": "clozapine10-saline-pretreatment",
+          "name": "Pretreatment: Clozapine 10mg Injection",
+          "startTime": 0,
+          "duration": 1860,
+          "endTime": 1860,
+          "description": "Inject clozapine 10mg and wait for 30 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine10-saline-treatment",
+          "name": "Treatment: Saline Injection",
+          "startTime": 1860,
+          "duration": 360,
+          "endTime": 2220,
+          "description": "Inject saline and wait for 5 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine10-saline-2dg",
+          "name": "2-DG Injection",
+          "startTime": 2220,
+          "duration": 360,
+          "endTime": 2580,
+          "description": "Inject 2-DG and wait for 5 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine10-saline-sacrifice",
+          "name": "Sacrifice",
+          "startTime": 2580,
+          "duration": 120,
+          "endTime": 2700,
+          "description": "Sacrifice the rat",
+          "task": "sacrifice-station",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine10-saline-brain-removal",
+          "name": "Brain Removal",
+          "startTime": 2700,
+          "duration": 180,
+          "endTime": 2880,
+          "description": "Remove the brain",
+          "task": "dissection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine10-saline-brain-freeze",
+          "name": "Brain Freezing",
+          "startTime": 2880,
+          "duration": 180,
+          "endTime": 3060,
+          "description": "Freeze the brain for preservation",
+          "task": "freezer",
+          "flex": {
+            "enabled": false
+          }
+        }
+      ]
+    },
+    {
+      "trackId": "clozapine10-ketamine",
+      "name": "Clozapine 10mg Pretreatment + Ketamine Treatment",
+      "steps": [
+        {
+          "stepId": "clozapine10-ketamine-pretreatment",
+          "name": "Pretreatment: Clozapine 10mg Injection",
+          "startTime": 0,
+          "duration": 1860,
+          "endTime": 1860,
+          "description": "Inject clozapine 10mg and wait for 30 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine10-ketamine-treatment",
+          "name": "Treatment: Ketamine Injection",
+          "startTime": 1860,
+          "duration": 360,
+          "endTime": 2220,
+          "description": "Inject ketamine and wait for 5 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine10-ketamine-2dg",
+          "name": "2-DG Injection",
+          "startTime": 2220,
+          "duration": 360,
+          "endTime": 2580,
+          "description": "Inject 2-DG and wait for 5 minutes",
+          "task": "injection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine10-ketamine-sacrifice",
+          "name": "Sacrifice",
+          "startTime": 2580,
+          "duration": 120,
+          "endTime": 2700,
+          "description": "Sacrifice the rat",
+          "task": "sacrifice-station",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine10-ketamine-brain-removal",
+          "name": "Brain Removal",
+          "startTime": 2700,
+          "duration": 180,
+          "endTime": 2880,
+          "description": "Remove the brain",
+          "task": "dissection",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "clozapine10-ketamine-brain-freeze",
+          "name": "Brain Freezing",
+          "startTime": 2880,
+          "duration": 180,
+          "endTime": 3060,
+          "description": "Freeze the brain for preservation",
+          "task": "freezer",
+          "flex": {
+            "enabled": false
+          }
+        }
+      ]
+    }
+  ],
+  "totalDuration": 3060,
+  "timeScale": "seconds"
+};
+        const environmentData = {};
+        const resourceConstraints = [
+  {
+    "task": "injection",
+    "maxConcurrent": 2,
+    "description": "Maximum number of simultaneous injections that can be performed"
+  },
+  {
+    "task": "sacrifice-station",
+    "maxConcurrent": 1,
+    "description": "Only one sacrifice can be performed at a time"
+  },
+  {
+    "task": "dissection",
+    "maxConcurrent": 2,
+    "description": "Maximum number of simultaneous brain removals that can be performed"
+  },
+  {
+    "task": "freezer",
+    "maxConcurrent": 3,
+    "description": "Maximum number of brains that can be frozen simultaneously"
+  }
+];
         
         // Settings Management
         const defaultSettings = {
@@ -2910,7 +3638,7 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
         });
         
         // Timeline Visualization
-        const margin = { top: 50, right: 50, bottom: 30, left: """ + str(dynamic_left_margin) + """ };
+        const margin = { top: 50, right: 50, bottom: 30, left: 300 };
         const minTimelineWidth = 800; // Minimum timeline width
         
         // Timeline scale management
@@ -4302,7 +5030,7 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
             
             // Schedule each step at the earliest possible time
             allSteps.forEach((step, index) => {
-                console.log(`\\nStep ${index + 1}/${allSteps.length}: "${step.name}" (${step.stepId})`);
+                console.log(`\nStep ${index + 1}/${allSteps.length}: "${step.name}" (${step.stepId})`);
                 console.log(`   Original time: ${step.originalStartTime}s, Duration: ${step.duration}s, Resource: ${step.task || 'none'}`);
                 
                 const earliestStartTime = findEarliestAvailableSlot(step, optimizedSteps, resourceTimeline);
@@ -4361,7 +5089,7 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
             console.log(`Summary: ${optimizedCount} steps were moved to resolve conflicts`);
             
             // POST-OPTIMIZATION: Re-check for conflicts with the optimized schedule
-            console.log('\\nPOST-OPTIMIZATION ANALYSIS:');
+            console.log('\nPOST-OPTIMIZATION ANALYSIS:');
             const postOptimizationConflicts = detectPostOptimizationConflicts(optimizedSteps);
             
             if (postOptimizationConflicts.length === 0) {
@@ -5101,102 +5829,4 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
         }
     </script>
 </body>
-</html>"""
-    
-    return html_template
-
-def generate_dag_visualization(program_file: str, output_file: str = None, open_browser: bool = True) -> str:
-    """
-    Generate a DAG visualization from a program file.
-    
-    Args:
-        program_file: Path to the program JSON file
-        output_file: Output HTML file path (optional)
-        open_browser: Whether to open the result in a browser
-        
-    Returns:
-        Path to the generated HTML file
-    """
-    # Load program
-    if not os.path.exists(program_file):
-        raise FileNotFoundError(f"Program file not found: {program_file}")
-    
-    program = load_program_file(program_file)
-    program_name = program.get('name', os.path.basename(program_file))
-    program_description = program.get('description', '')
-    
-    # Load environment and resource constraints if available
-    environment_data = None
-    resource_constraints = []
-    
-    try:
-        from .environment_loader import load_resource_constraints, get_default_loader
-        
-        # Load resource constraints (handles both embedded and environment-based)
-        resource_constraints = load_resource_constraints(program)
-        
-        # Load full environment data if environment is specified
-        environment_id = program.get('environment')
-        if environment_id:
-            loader = get_default_loader()
-            try:
-                environment_data = loader.get_environment(environment_id)
-            except (FileNotFoundError, ValueError):
-                print(f"Warning: Could not load environment '{environment_id}'")
-                
-    except ImportError:
-        print("Warning: Environment loader not available, using embedded constraints only")
-        resource_constraints = program.get('resourceConstraints', [])
-    
-    # Extract dependencies
-    nodes, edges = extract_step_dependencies(program)
-    
-    # Generate HTML with environment data
-    html_content = generate_dag_html(nodes, edges, program, environment_data, resource_constraints)
-    
-    # Determine output file
-    if output_file is None:
-        program_path = Path(program_file)
-        output_file = program_path.parent / f"{program_path.stem}_dag.html"
-    
-    # Write HTML file
-    with open(output_file, 'w', encoding='utf-8') as f:
-        f.write(html_content)
-    
-    print(f"DAG visualization generated: {output_file}")
-    print(f"Found {len(nodes)} steps and {len(edges)} dependencies")
-    if resource_constraints:
-        print(f"Found {len(resource_constraints)} resource constraints")
-    if environment_data:
-        print(f"Using environment: {environment_data.get('name', environment_id)}")
-    
-    # Open in browser
-    if open_browser:
-        webbrowser.open(f"file://{os.path.abspath(output_file)}")
-    
-    return str(output_file)
-
-def main():
-    """Command-line interface for DAG visualization."""
-    parser = argparse.ArgumentParser(description="Generate DAG visualization from Rhylthyme program files")
-    parser.add_argument("program_file", help="Path to the program JSON file")
-    parser.add_argument("-o", "--output", help="Output HTML file path")
-    parser.add_argument("--no-browser", action="store_true", help="Don't open browser automatically")
-    
-    args = parser.parse_args()
-    
-    try:
-        output_file = generate_dag_visualization(
-            args.program_file, 
-            args.output, 
-            not args.no_browser
-        )
-        print(f"Success! DAG visualization saved to: {output_file}")
-    except Exception as e:
-        print(f"Error: {e}")
-        return 1
-    
-    return 0
-
-if __name__ == "__main__":
-    exit(main()) 
+</html>

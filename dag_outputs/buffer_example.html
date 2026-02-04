@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DAG Visualization - Manual Controls Demo</title>
+    <title>DAG Visualization - Buffer Example Program</title>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -381,12 +381,12 @@
 <body class="bg-gray-100 font-sans">
     <div class="max-w-7xl mx-auto bg-white rounded-lg shadow-lg p-6">
         <h1 class="text-3xl font-bold text-gray-800 mb-2 pb-2 border-b-2 flex items-center gap-3" style="border-color: #4B46B9;">
-            <i class="fas fa-building text-gray-600" title="Environment Type: N/A"></i>
-            Manual Controls Demo
+            <i class="fas fa-utensils text-gray-600" title="Environment Type: kitchen"></i>
+            Buffer Example Program
         </h1>
         
         <div class="text-dag-gray italic mb-8 leading-relaxed text-lg">
-            Demo program showing manual start and stop controls
+            Demonstrates pre-buffer and post-buffer functionality for setup and cleanup phases
         </div>
         
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
@@ -394,16 +394,16 @@
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Estimated Total Time</span>
                 <div class="flex flex-col items-center">
                     
-                    <span class="text-dag-green font-semibold text-sm">2.5 minutes</span>
+                    <span class="text-dag-green font-semibold text-sm">15 minutes</span>
                 </div>
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Version</span>
-                <span class="font-semibold text-sm" style="color: #4B46B9;">N/A</span>
+                <span class="font-semibold text-sm" style="color: #4B46B9;">1.0.0</span>
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Environment Type</span>
-                <span class="text-dag-purple font-semibold text-sm">N/A</span>
+                <span class="text-dag-purple font-semibold text-sm">kitchen</span>
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Environment</span>
@@ -411,7 +411,7 @@
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Resource Constraints</span>
-                <span class="text-dag-gray font-semibold text-sm">0</span>
+                <span class="text-dag-gray font-semibold text-sm">4</span>
             </div>
         </div>
         
@@ -462,25 +462,6 @@
                                     <button id="settings-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded transition-colors" title="Settings">
                         <i class="fas fa-cog mr-2"></i>Settings
                     </button>
-            </div>
-        </div>
-        
-        <!-- Manual Step Controls -->
-        <div id="manual-controls" class="border border-gray-300 rounded-lg p-4 mb-8 bg-gray-50 hidden">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Manual Step Controls</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div id="manual-start-controls">
-                    <h4 class="text-md font-medium text-gray-700 mb-2">Manual Start Steps</h4>
-                    <div id="manual-start-buttons" class="space-y-2">
-                        <!-- Manual start buttons will be dynamically added here -->
-                    </div>
-                </div>
-                <div id="manual-stop-controls">
-                    <h4 class="text-md font-medium text-gray-700 mb-2">Variable Duration Steps</h4>
-                    <div id="manual-stop-buttons" class="space-y-2">
-                        <!-- Manual stop buttons will be dynamically added here -->
-                    </div>
-                </div>
             </div>
         </div>
         
@@ -720,187 +701,912 @@
     "description": "Program initialization"
   },
   {
-    "id": "step1",
-    "name": "Auto Start Step",
-    "track": "main",
-    "track_name": "Main Track",
+    "id": "prep-pasta",
+    "name": "Prepare Pasta",
+    "track": "pasta-dish",
+    "track_name": "Pasta Dish Preparation",
     "type": "step",
-    "description": "This step starts automatically",
-    "task": "preparation",
-    "duration": "30s",
-    "preBuffer": {},
-    "postBuffer": {},
+    "description": "Boil water and cook pasta",
+    "task": "chef",
+    "duration": "480s",
+    "preBuffer": {
+      "duration": 120,
+      "description": "Set up cooking station and boil water",
+      "tasks": [
+        "chef",
+        "prep-station"
+      ]
+    },
+    "postBuffer": {
+      "duration": 60,
+      "description": "Drain pasta and clean pot",
+      "taskResources": [
+        {
+          "name": "chef",
+          "fraction": 0.5
+        },
+        {
+          "name": "dishwasher",
+          "fraction": 1.0
+        }
+      ]
+    },
     "flex": {
       "enabled": false
-    },
-    "hasManualStart": false,
-    "startTriggerName": null,
-    "hasManualStop": false,
-    "stopTriggerName": null,
-    "durationType": "fixed"
+    }
   },
   {
-    "id": "step2",
-    "name": "Manual Start Step",
-    "track": "main",
-    "track_name": "Main Track",
+    "id": "prep-sauce",
+    "name": "Prepare Sauce",
+    "track": "sauce",
+    "track_name": "Sauce Preparation",
     "type": "step",
-    "description": "This step requires manual start",
-    "task": "manual-task",
-    "duration": "45s",
-    "preBuffer": {},
-    "postBuffer": {},
+    "description": "Make tomato sauce from scratch",
+    "task": "chef",
+    "duration": "300-600s (default: 420s)",
+    "preBuffer": {
+      "duration": 90,
+      "description": "Gather ingredients and prep vegetables",
+      "taskResources": [
+        {
+          "name": "chef",
+          "fraction": 1.0
+        },
+        {
+          "name": "prep-station",
+          "fraction": 1.0
+        }
+      ]
+    },
+    "postBuffer": {
+      "duration": 45,
+      "description": "Taste and adjust seasoning, clean up",
+      "tasks": [
+        "chef"
+      ]
+    },
     "flex": {
       "enabled": false
-    },
-    "hasManualStart": true,
-    "startTriggerName": "start-manual-step",
-    "hasManualStop": false,
-    "stopTriggerName": null,
-    "durationType": "fixed"
+    }
   },
   {
-    "id": "step3",
-    "name": "Variable Duration Step",
-    "track": "main",
-    "track_name": "Main Track",
+    "id": "plate-dish",
+    "name": "Plate and Serve",
+    "track": "serving",
+    "track_name": "Final Assembly and Serving",
     "type": "step",
-    "description": "This step can be manually stopped after minimum time",
-    "task": "monitoring",
-    "duration": "60-180s (default: 120s)",
-    "preBuffer": {},
-    "postBuffer": {},
+    "description": "Combine pasta and sauce, plate and serve",
+    "task": "chef",
+    "duration": "120s",
+    "preBuffer": {
+      "duration": 30,
+      "description": "Set up serving plates and utensils",
+      "tasks": [
+        "chef"
+      ]
+    },
+    "postBuffer": {
+      "duration": 180,
+      "description": "Clean kitchen and wash all dishes",
+      "taskResources": [
+        {
+          "name": "chef",
+          "fraction": 0.3
+        },
+        {
+          "name": "dishwasher",
+          "fraction": 1.0
+        },
+        {
+          "name": "prep-station",
+          "fraction": 0.5
+        }
+      ]
+    },
     "flex": {
       "enabled": false
-    },
-    "hasManualStart": false,
-    "startTriggerName": null,
-    "hasManualStop": true,
-    "stopTriggerName": "stop-monitoring",
-    "durationType": "variable"
-  },
-  {
-    "id": "step4",
-    "name": "Indefinite Duration Step",
-    "track": "main",
-    "track_name": "Main Track",
-    "type": "step",
-    "description": "This step runs indefinitely until manually stopped",
-    "task": "watching",
-    "duration": "indefinite",
-    "preBuffer": {},
-    "postBuffer": {},
-    "flex": {
-      "enabled": false
-    },
-    "hasManualStart": false,
-    "startTriggerName": null,
-    "hasManualStop": true,
-    "stopTriggerName": "stop-watching",
-    "durationType": "indefinite"
+    }
   }
 ];
         const edges = [
   {
     "source": "program_start",
-    "target": "step1",
+    "target": "prep-pasta",
     "type": "programStart"
   },
   {
-    "source": "step1",
-    "target": "step3",
-    "type": "afterStep"
+    "source": "program_start",
+    "target": "prep-sauce",
+    "type": "programStartOffset",
+    "offset": 60
   },
   {
-    "source": "step2",
-    "target": "step4",
+    "source": "prep-pasta",
+    "target": "plate-dish",
     "type": "afterStep"
   }
 ];
         const timelineData = {
   "tracks": [
     {
-      "trackId": "main",
-      "name": "Main Track",
+      "trackId": "pasta-dish",
+      "name": "Pasta Dish Preparation",
       "steps": [
         {
-          "stepId": "step1",
-          "name": "Auto Start Step",
-          "startTime": 0,
-          "duration": 30,
-          "endTime": 30,
-          "description": "This step starts automatically",
-          "task": "preparation",
+          "stepId": "prep-pasta",
+          "name": "Prepare Pasta",
+          "startTime": 120,
+          "duration": 480,
+          "endTime": 600,
+          "description": "Boil water and cook pasta",
+          "task": "chef",
           "flex": {
             "enabled": false
           },
-          "hasManualStart": false,
-          "startTriggerName": null,
-          "hasManualStop": false,
-          "stopTriggerName": null,
-          "durationType": "fixed"
-        },
+          "preBuffer": {
+            "startTime": 0,
+            "duration": 120,
+            "endTime": 120,
+            "description": "Set up cooking station and boil water",
+            "tasks": [
+              "chef",
+              "prep-station"
+            ]
+          },
+          "postBuffer": {
+            "startTime": 600,
+            "duration": 60,
+            "endTime": 660,
+            "description": "Drain pasta and clean pot",
+            "tasks": []
+          }
+        }
+      ]
+    },
+    {
+      "trackId": "sauce",
+      "name": "Sauce Preparation",
+      "steps": [
         {
-          "stepId": "step2",
-          "name": "Manual Start Step",
-          "startTime": 0,
-          "duration": 45,
-          "endTime": 45,
-          "description": "This step requires manual start",
-          "task": "manual-task",
+          "stepId": "prep-sauce",
+          "name": "Prepare Sauce",
+          "startTime": 180,
+          "duration": 420,
+          "endTime": 600,
+          "description": "Make tomato sauce from scratch",
+          "task": "chef",
           "flex": {
             "enabled": false
           },
-          "hasManualStart": true,
-          "startTriggerName": "start-manual-step",
-          "hasManualStop": false,
-          "stopTriggerName": null,
-          "durationType": "fixed"
-        },
+          "preBuffer": {
+            "startTime": 90,
+            "duration": 90,
+            "endTime": 180,
+            "description": "Gather ingredients and prep vegetables",
+            "tasks": []
+          },
+          "postBuffer": {
+            "startTime": 600,
+            "duration": 45,
+            "endTime": 645,
+            "description": "Taste and adjust seasoning, clean up",
+            "tasks": [
+              "chef"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "trackId": "serving",
+      "name": "Final Assembly and Serving",
+      "steps": [
         {
-          "stepId": "step3",
-          "name": "Variable Duration Step",
-          "startTime": 30,
+          "stepId": "plate-dish",
+          "name": "Plate and Serve",
+          "startTime": 600,
           "duration": 120,
-          "endTime": 150,
-          "description": "This step can be manually stopped after minimum time",
-          "task": "monitoring",
+          "endTime": 720,
+          "description": "Combine pasta and sauce, plate and serve",
+          "task": "chef",
           "flex": {
             "enabled": false
           },
-          "hasManualStart": false,
-          "startTriggerName": null,
-          "hasManualStop": true,
-          "stopTriggerName": "stop-monitoring",
-          "durationType": "variable"
-        },
-        {
-          "stepId": "step4",
-          "name": "Indefinite Duration Step",
-          "startTime": 45,
-          "duration": 0,
-          "endTime": 45,
-          "description": "This step runs indefinitely until manually stopped",
-          "task": "watching",
-          "flex": {
-            "enabled": false
+          "preBuffer": {
+            "startTime": 570,
+            "duration": 30,
+            "endTime": 600,
+            "description": "Set up serving plates and utensils",
+            "tasks": [
+              "chef"
+            ]
           },
-          "hasManualStart": false,
-          "startTriggerName": null,
-          "hasManualStop": true,
-          "stopTriggerName": "stop-watching",
-          "durationType": "indefinite"
+          "postBuffer": {
+            "startTime": 720,
+            "duration": 180,
+            "endTime": 900,
+            "description": "Clean kitchen and wash all dishes",
+            "tasks": []
+          }
         }
       ]
     }
   ],
-  "totalDuration": 150,
+  "totalDuration": 900,
   "timeScale": "seconds"
 };
         const environmentData = {};
-        const resourceConstraints = [];
+        const resourceConstraints = [
+  {
+    "task": "chef",
+    "maxConcurrent": 1,
+    "description": "Chef who does the cooking and preparation"
+  },
+  {
+    "task": "stove",
+    "maxConcurrent": 2,
+    "description": "Stove burners for cooking"
+  },
+  {
+    "task": "prep-station",
+    "maxConcurrent": 1,
+    "description": "Preparation station for food prep"
+  },
+  {
+    "task": "dishwasher",
+    "maxConcurrent": 1,
+    "description": "Dishwasher for cleaning"
+  }
+];
         
-        // Execution state variables - declare early
+        // Settings Management
+        const defaultSettings = {
+            theme: 'light',
+            defaultViews: ['timeline'],
+            defaultTimeFormat: 'relative-minutes',
+            enabledPresets: []
+        };
+        
+        let userSettings = { ...defaultSettings };
+        
+        // Cookie utilities
+        function setCookie(name, value, days = 30) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+            document.cookie = name + '=' + JSON.stringify(value) + ';expires=' + expires.toUTCString() + ';path=/';
+        }
+        
+        function getCookie(name) {
+            const nameEQ = name + '=';
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) {
+                    try {
+                        return JSON.parse(c.substring(nameEQ.length, c.length));
+                    } catch (e) {
+                        return null;
+                    }
+                }
+            }
+            return null;
+        }
+        
+        // Load user settings from cookies
+        function loadUserSettings() {
+            const savedSettings = getCookie('rhylthyme_settings');
+            if (savedSettings) {
+                userSettings = { ...defaultSettings, ...savedSettings };
+            }
+            applyUserSettings();
+        }
+        
+        // Apply user settings to the interface
+        function applyUserSettings() {
+            // Apply theme
+            applyTheme(userSettings.theme);
+            
+            // Set default time format
+            timeFormat = userSettings.defaultTimeFormat;
+            document.getElementById('time-format-selector').value = userSettings.defaultTimeFormat;
+            
+            // Set default views
+            activeViews = new Set(userSettings.defaultViews);
+            
+            // Apply preset visibility - show directly if presets are enabled, hide entirely if none
+            const presetsContainer = document.getElementById('preset-buttons-container');
+            if (userSettings.enabledPresets && userSettings.enabledPresets.length > 0) {
+                presetsContainer.style.display = 'flex';
+            } else {
+                presetsContainer.style.display = 'none';
+            }
+            
+            // Generate and apply custom presets
+            generateCustomPresets();
+            
+            // Update view toggles and display
+            updateView();
+        }
+        
+        // Apply theme
+        function applyTheme(theme) {
+            const body = document.body;
+            if (theme === 'dark') {
+                body.classList.add('dark-mode');
+            } else {
+                body.classList.remove('dark-mode');
+            }
+        }
+        
+        // Generate custom preset buttons based on user settings
+        function generateCustomPresets() {
+            const container = document.getElementById('preset-buttons-container');
+            const existingPresets = container.querySelectorAll('.time-preset');
+            existingPresets.forEach(preset => preset.remove());
+            
+            // Create new presets based on user settings
+            userSettings.enabledPresets.forEach(minutes => {
+                const button = document.createElement('button');
+                button.className = 'bg-dag-green hover:bg-green-600 text-white font-bold py-1 px-2 rounded text-xs mx-0.5 transition-colors time-preset';
+                button.dataset.minutes = minutes;
+                
+                // Format button text
+                if (minutes >= 60) {
+                    const hours = minutes / 60;
+                    button.textContent = hours === Math.floor(hours) ? `${Math.floor(hours)}hr` : `${hours}hr`;
+                } else {
+                    button.textContent = `${minutes}min`;
+                }
+                
+                // Add click event
+                button.addEventListener('click', function() {
+                    const minutes = parseInt(this.dataset.minutes);
+                    setTimelinePreset(minutes);
+                });
+                
+                container.appendChild(button);
+            });
+        }
+        
+        // Settings Modal Management
+        function openSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            modal.classList.remove('hidden');
+            
+            // Populate current settings
+            populateSettingsModal();
+        }
+        
+        function closeSettingsModal() {
+            const modal = document.getElementById('settings-modal');
+            modal.classList.add('hidden');
+        }
+        
+        function populateSettingsModal() {
+            // Set theme
+            document.querySelector(`input[name="theme"][value="${userSettings.theme}"]`).checked = true;
+            
+            // Set default views
+            document.getElementById('default-dag').checked = userSettings.defaultViews.includes('dag');
+            document.getElementById('default-timeline').checked = userSettings.defaultViews.includes('timeline');
+            document.getElementById('default-resources').checked = userSettings.defaultViews.includes('resources');
+            document.getElementById('default-itinerary').checked = userSettings.defaultViews.includes('itinerary');
+            
+            // Set default time format
+            document.getElementById('default-time-format').value = userSettings.defaultTimeFormat;
+            
+            // Set preset checkboxes
+            document.querySelectorAll('.preset-checkbox').forEach(checkbox => {
+                const minutes = parseInt(checkbox.dataset.minutes);
+                checkbox.checked = userSettings.enabledPresets.includes(minutes);
+            });
+        }
+        
+        function saveSettings() {
+            // Get theme
+            const selectedTheme = document.querySelector('input[name="theme"]:checked').value;
+            
+            // Get default views
+            const selectedViews = [];
+            if (document.getElementById('default-dag').checked) selectedViews.push('dag');
+            if (document.getElementById('default-timeline').checked) selectedViews.push('timeline');
+            if (document.getElementById('default-resources').checked) selectedViews.push('resources');
+            if (document.getElementById('default-itinerary').checked) selectedViews.push('itinerary');
+            
+            // Get default time format
+            const selectedTimeFormat = document.getElementById('default-time-format').value;
+            
+            // Get enabled presets
+            const selectedPresets = [];
+            document.querySelectorAll('.preset-checkbox:checked').forEach(checkbox => {
+                selectedPresets.push(parseInt(checkbox.dataset.minutes));
+            });
+            
+            // Update user settings
+            userSettings = {
+                theme: selectedTheme,
+                defaultViews: selectedViews.length > 0 ? selectedViews : ['timeline'], // Ensure at least one view
+                defaultTimeFormat: selectedTimeFormat,
+                enabledPresets: selectedPresets // Allow empty array - will hide presets
+            };
+            
+            // Save to cookie
+            setCookie('rhylthyme_settings', userSettings);
+            
+            // Apply settings immediately
+            applyUserSettings();
+            
+            // Close modal
+            closeSettingsModal();
+            
+            // Show confirmation
+            showNotification('Settings saved successfully!', 'success');
+        }
+        
+        function resetSettings() {
+            userSettings = { ...defaultSettings };
+            populateSettingsModal();
+        }
+        
+        // Show notification
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded shadow-lg text-white transition-opacity duration-300 ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 'bg-blue-500'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+        
+        // Event listeners for settings
+        document.getElementById('settings-btn').addEventListener('click', openSettingsModal);
+        document.getElementById('close-settings').addEventListener('click', closeSettingsModal);
+        document.getElementById('cancel-settings').addEventListener('click', closeSettingsModal);
+        document.getElementById('save-settings').addEventListener('click', saveSettings);
+        document.getElementById('reset-settings').addEventListener('click', resetSettings);
+        
+        // Auto-plan functionality
+        async function autoPlan() {
+            const strategy = document.getElementById('auto-plan-strategy').value;
+            
+            try {
+                showToast('Generating auto-plan...', 'info');
+                
+                // Store original timeline data for reset functionality (only if not already stored)
+                if (!originalTimelineData) {
+                    originalTimelineData = JSON.parse(JSON.stringify(timelineData));
+                }
+                
+                // Create a simplified program structure for the auto-planner
+                const programData = {
+                    tracks: timelineData.tracks.map(track => ({
+                        trackId: track.trackId,
+                        name: track.name,
+                        priority: track.priority || 100,
+                        steps: track.steps.map(step => ({
+                            stepId: step.stepId,
+                            name: step.name,
+                            priority: step.priority || 100,
+                            duration: {
+                                type: 'fixed',
+                                seconds: step.duration
+                            },
+                            startTrigger: {
+                                type: 'programStart'  // Simplified for now
+                            },
+                            task: step.task || '',
+                            flex: step.flex || { enabled: false }
+                        }))
+                    }))
+                };
+                
+                // Apply auto-planning logic
+                const result = await applyAutoPlanStrategy(programData, strategy);
+                
+                if (result.success) {
+                    // Update timeline data with new timings
+                    updateTimelineWithPlan(result.plan);
+                    
+                    // Refresh all views
+                    refreshAllViews();
+                    
+                    showToast(`Auto-plan applied: ${strategy.replace('_', ' ')}`, 'success');
+                } else {
+                    showToast('Auto-plan failed: ' + (result.error || 'Unknown error'), 'error');
+                }
+                
+            } catch (error) {
+                console.error('Auto-plan error:', error);
+                showToast('Auto-plan failed: ' + error.message, 'error');
+            }
+        }
+        
+        async function applyAutoPlanStrategy(programData, strategy) {
+            try {
+                // Simple client-side auto-planning implementation
+                const result = {
+                    success: true,
+                    plan: {
+                        strategy: strategy,
+                        stepTimings: []
+                    }
+                };
+                
+                // Calculate step dependencies and earliest start times
+                const stepDependencies = calculateStepDependencies(programData);
+                const earliestTimes = calculateEarliestStartTimes(stepDependencies, programData);
+                
+                // Apply strategy-specific logic
+                if (strategy === 'synchronized_finish') {
+                    result.plan.stepTimings = applySynchronizedFinish(earliestTimes, programData);
+                } else if (strategy === 'cover') {
+                    result.plan.stepTimings = applyCoverStrategy(earliestTimes, programData);
+                } else if (strategy === 'minimize_length') {
+                    result.plan.stepTimings = applyMinimizeLength(earliestTimes, programData);
+                }
+                
+                return result;
+                
+            } catch (error) {
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+        
+        function calculateStepDependencies(programData) {
+            const dependencies = {};
+            
+            // Simple dependency calculation based on track order
+            programData.tracks.forEach(track => {
+                track.steps.forEach((step, index) => {
+                    dependencies[step.stepId] = [];
+                    
+                    // Depend on previous step in same track
+                    if (index > 0) {
+                        dependencies[step.stepId].push(track.steps[index - 1].stepId);
+                    }
+                });
+            });
+            
+            return dependencies;
+        }
+        
+        function calculateEarliestStartTimes(dependencies, programData) {
+            const times = {};
+            const stepDurations = {};
+            
+            // Build step durations map
+            programData.tracks.forEach(track => {
+                track.steps.forEach(step => {
+                    stepDurations[step.stepId] = step.duration.seconds || 0;
+                });
+            });
+            
+            function getEarliestTime(stepId, visited = new Set()) {
+                if (visited.has(stepId)) return 0; // Cycle prevention
+                if (times[stepId] !== undefined) return times[stepId];
+                
+                visited.add(stepId);
+                
+                let maxPredecessorEnd = 0;
+                
+                (dependencies[stepId] || []).forEach(depStepId => {
+                    const depStart = getEarliestTime(depStepId, new Set(visited));
+                    const depDuration = stepDurations[depStepId] || 0;
+                    maxPredecessorEnd = Math.max(maxPredecessorEnd, depStart + depDuration);
+                });
+                
+                times[stepId] = maxPredecessorEnd;
+                return maxPredecessorEnd;
+            }
+            
+            // Calculate for all steps
+            programData.tracks.forEach(track => {
+                track.steps.forEach(step => {
+                    getEarliestTime(step.stepId);
+                });
+            });
+            
+            return times;
+        }
+        
+        function applySynchronizedFinish(earliestTimes, programData) {
+            const stepTimings = [];
+            
+            // Calculate track end times at earliest schedule
+            const trackEndTimes = {};
+            programData.tracks.forEach(track => {
+                let trackEnd = 0;
+                track.steps.forEach(step => {
+                    const startTime = earliestTimes[step.stepId] || 0;
+                    const duration = step.duration.seconds || 0;
+                    trackEnd = Math.max(trackEnd, startTime + duration);
+                });
+                trackEndTimes[track.trackId] = trackEnd;
+            });
+            
+            // Find maximum end time
+            const maxEndTime = Math.max(...Object.values(trackEndTimes));
+            
+            // Delay shorter tracks to synchronize finish
+            programData.tracks.forEach(track => {
+                const trackDelay = maxEndTime - trackEndTimes[track.trackId];
+                
+                track.steps.forEach(step => {
+                    const originalStart = earliestTimes[step.stepId] || 0;
+                    const newStart = originalStart + trackDelay;
+                    const duration = step.duration.seconds || 0;
+                    
+                    stepTimings.push({
+                        stepId: step.stepId,
+                        trackId: track.trackId,
+                        startTime: newStart,
+                        duration: duration,
+                        endTime: newStart + duration
+                    });
+                });
+            });
+            
+            return stepTimings;
+        }
+        
+        function applyCoverStrategy(earliestTimes, programData) {
+            const stepTimings = [];
+            let currentTime = 0;
+            let lastScheduledTrack = null;
+            let lastScheduledStep = null;
+            
+            // Prepare all steps with metadata
+            const allSteps = [];
+            programData.tracks.forEach(track => {
+                track.steps.forEach(step => {
+                    allSteps.push({
+                        ...step,
+                        trackId: track.trackId,
+                        trackName: track.name,
+                        trackPriority: track.priority || 100,
+                        earliestTime: earliestTimes[step.stepId] || 0,
+                        isCommercial: track.trackId === 'commercial-breaks',
+                        scheduled: false
+                    });
+                });
+            });
+            
+            // Keep scheduling until all steps are placed
+            while (stepTimings.length < allSteps.length) {
+                const availableSteps = allSteps.filter(step => 
+                    !step.scheduled && step.earliestTime <= currentTime
+                );
+                
+                if (availableSteps.length === 0) {
+                    // No steps available yet, advance time to next earliest step
+                    const nextSteps = allSteps.filter(step => !step.scheduled);
+                    if (nextSteps.length === 0) break;
+                    
+                    const nextEarliestTime = Math.min(...nextSteps.map(s => s.earliestTime));
+                    currentTime = nextEarliestTime;
+                    continue;
+                }
+                
+                // Choose the best next step using priority rules
+                let bestStep = null;
+                
+                // Rule 1: Avoid consecutive commercials at all costs
+                const nonCommercialSteps = availableSteps.filter(s => !s.isCommercial);
+                if (lastScheduledStep?.isCommercial && nonCommercialSteps.length > 0) {
+                    bestStep = chooseBestStep(nonCommercialSteps, lastScheduledTrack);
+                } else {
+                    // Rule 2: Prefer different tracks to create variety
+                    const differentTrackSteps = availableSteps.filter(s => s.trackId !== lastScheduledTrack);
+                    if (differentTrackSteps.length > 0) {
+                        // Among different tracks, prefer non-commercials
+                        const nonCommercialDifferentTrack = differentTrackSteps.filter(s => !s.isCommercial);
+                        if (nonCommercialDifferentTrack.length > 0) {
+                            bestStep = chooseBestStep(nonCommercialDifferentTrack, lastScheduledTrack);
+                        } else {
+                            bestStep = chooseBestStep(differentTrackSteps, lastScheduledTrack);
+                        }
+                    } else {
+                        // Rule 3: If no different track available, use same track but avoid consecutive commercials
+                        bestStep = chooseBestStep(availableSteps, lastScheduledTrack);
+                    }
+                }
+                
+                if (!bestStep) {
+                    // Fallback: just pick the first available step
+                    bestStep = availableSteps[0];
+                }
+                
+                // Schedule the chosen step
+                const duration = bestStep.duration.seconds || 0;
+                const endTime = currentTime + duration;
+                
+                stepTimings.push({
+                    stepId: bestStep.stepId,
+                    trackId: bestStep.trackId,
+                    startTime: currentTime,
+                    duration: duration,
+                    endTime: endTime
+                });
+                
+                // Update tracking variables
+                bestStep.scheduled = true;
+                currentTime = endTime;
+                lastScheduledTrack = bestStep.trackId;
+                lastScheduledStep = bestStep;
+            }
+            
+            return stepTimings;
+        }
+        
+        function chooseBestStep(candidateSteps, lastTrackId) {
+            if (candidateSteps.length === 0) return null;
+            if (candidateSteps.length === 1) return candidateSteps[0];
+            
+            // Sort by priority (lower number = higher priority), then by earliest time
+            candidateSteps.sort((a, b) => {
+                if (a.trackPriority !== b.trackPriority) {
+                    return a.trackPriority - b.trackPriority;
+                }
+                return a.earliestTime - b.earliestTime;
+            });
+            
+            return candidateSteps[0];
+        }
+        
+        function applyMinimizeLength(earliestTimes, programData) {
+            const stepTimings = [];
+            
+            // Use earliest times and minimum durations
+            programData.tracks.forEach(track => {
+                track.steps.forEach(step => {
+                    const startTime = earliestTimes[step.stepId] || 0;
+                    const duration = step.duration.seconds || 0;
+                    
+                    stepTimings.push({
+                        stepId: step.stepId,
+                        trackId: track.trackId,
+                        startTime: startTime,
+                        duration: duration,
+                        endTime: startTime + duration
+                    });
+                });
+            });
+            
+            return stepTimings;
+        }
+        
+        function updateTimelineWithPlan(plan) {
+            // Update timeline data with new step timings
+            plan.stepTimings.forEach(timing => {
+                // Find the step in timeline data and update its times
+                timelineData.tracks.forEach(track => {
+                    if (track.trackId === timing.trackId) {
+                        track.steps.forEach(step => {
+                            if (step.stepId === timing.stepId) {
+                                step.startTime = timing.startTime;
+                                step.duration = timing.duration;
+                                step.endTime = timing.endTime;
+                                
+                                // Mark as auto-planned
+                                step.autoPlanned = true;
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // Recalculate total duration
+            let maxEndTime = 0;
+            timelineData.tracks.forEach(track => {
+                track.steps.forEach(step => {
+                    maxEndTime = Math.max(maxEndTime, step.endTime);
+                });
+            });
+            timelineData.totalDuration = maxEndTime;
+            
+            // Update the duration display
+            updateDurationDisplay();
+        }
+        
+        function updateDurationDisplay() {
+            // Format the new duration
+            function formatDuration(seconds) {
+                if (seconds >= 3600) {
+                    const hours = seconds / 3600;
+                    return hours % 1 === 0 ? `${Math.floor(hours)} hours` : `${hours.toFixed(1)} hours`;
+                } else if (seconds >= 60) {
+                    const minutes = seconds / 60;
+                    return minutes % 1 === 0 ? `${Math.floor(minutes)} minutes` : `${minutes.toFixed(1)} minutes`;
+                } else {
+                    return `${Math.floor(seconds)} seconds`;
+                }
+            }
+            
+            const newFormattedDuration = formatDuration(timelineData.totalDuration || 0);
+            
+            // Find the duration display element - it's the green text in the first column
+            const durationElement = document.querySelector('.text-dag-green');
+            if (durationElement) {
+                // Check if this is the program duration scenario (has blue text above)
+                const parentDiv = durationElement.closest('.flex.flex-col.items-center');
+                const hasFixedDuration = parentDiv && parentDiv.querySelector('.text-blue-600');
+                
+                if (hasFixedDuration) {
+                    // Update estimated duration text (Est: X)
+                    durationElement.textContent = `Est: ${newFormattedDuration}`;
+                } else {
+                    // Update regular estimated duration
+                    durationElement.textContent = newFormattedDuration;
+                }
+            }
+        }
+        
+        function resetPlan() {
+            // Check if we have original data stored (either from auto-plan or optimization)
+            if (originalTimelineData) {
+                // Restore original timeline data
+                timelineData.tracks = JSON.parse(JSON.stringify(originalTimelineData.tracks));
+                timelineData.totalDuration = originalTimelineData.totalDuration;
+                
+                // Clear the stored original data
+                originalTimelineData = null;
+                
+                // Refresh all views
+                refreshAllViews();
+                
+                // Update duration display
+                updateDurationDisplay();
+                
+                showToast('Timeline reset to original plan', 'info');
+            } else {
+                showToast('No changes to reset', 'warning');
+            }
+        }
+        
+        // Event listeners for auto-plan controls
+        document.getElementById('auto-plan-btn').addEventListener('click', autoPlan);
+        document.getElementById('reset-plan-btn').addEventListener('click', resetPlan);
+        
+        // Close modal when clicking outside
+        document.getElementById('settings-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeSettingsModal();
+            }
+        });
+        
+        // Load settings on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserSettings();
+        });
+        
+        // Handle window resize to ensure DAG SVG stays responsive
+        window.addEventListener('resize', function() {
+            // Debounce resize events to avoid excessive re-rendering
+            clearTimeout(window.resizeTimeout);
+            window.resizeTimeout = setTimeout(function() {
+                if (activeViews.has('dag')) {
+                    renderDAG();
+                }
+                if (activeViews.has('timeline')) {
+                    updateTimeline(currentScale);
+                }
+            }, 100);
+        });
+        
+        // Execution state variables
         let executionState = 'stopped'; // 'stopped', 'running', 'paused'
         let currentTime = 0;
         let executionTimer = null;
@@ -908,10 +1614,12 @@
         let currentTimelinePosition = null;
         
         // Time format variables
-        let timeFormat = 'relative-minutes';
-        let executionStartTime = null;
+        let timeFormat = 'relative-minutes'; // Default to relative minutes
+        let programStartTime = new Date(); // Default to current time
+        let programStartTimeString = '09:00'; // Default start time string
+        let executionStartTime = null; // Actual time when execution starts (for time-of-day modes)
         
-        // SVG setup variables - declare early
+        // Set up SVG
         const svg = d3.select("#dag-svg");
         const width = parseInt(svg.style("width"));
         const height = parseInt(svg.style("height"));
@@ -921,312 +1629,7 @@
         const timelineWidth = parseInt(timelineSvg.style("width"));
         const timelineHeight = parseInt(timelineSvg.style("height"));
         
-        // Manual Control Management
-        let stepStatus = {}; // Track step execution status (pending, running, completed)
-        
-        // Initialize manual controls
-        function initializeManualControls() {
-            const manualControlsContainer = document.getElementById('manual-controls');
-            const startButtonsContainer = document.getElementById('manual-start-buttons');
-            const stopButtonsContainer = document.getElementById('manual-stop-buttons');
-            
-            let hasManualSteps = false;
-            
-            // Clear existing buttons
-            startButtonsContainer.innerHTML = '';
-            stopButtonsContainer.innerHTML = '';
-            
-            // Initialize step status
-            timelineData.tracks.forEach(track => {
-                track.steps.forEach(step => {
-                    stepStatus[step.stepId] = 'pending';
-                    
-                    // Add manual start button if needed
-                    if (step.hasManualStart) {
-                        hasManualSteps = true;
-                        const button = createManualStartButton(step);
-                        startButtonsContainer.appendChild(button);
-                    }
-                    
-                    // Add manual stop button if needed  
-                    if (step.hasManualStop) {
-                        hasManualSteps = true;
-                        const button = createManualStopButton(step);
-                        stopButtonsContainer.appendChild(button);
-                    }
-                });
-            });
-            
-            // Show/hide manual controls based on whether there are manual steps
-            if (hasManualSteps) {
-                manualControlsContainer.classList.remove('hidden');
-            } else {
-                manualControlsContainer.classList.add('hidden');
-            }
-        }
-        
-        function createManualStartButton(step) {
-            const button = document.createElement('button');
-            button.id = `start-${step.stepId}`;
-            button.className = 'bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between w-full';
-            button.innerHTML = `
-                <span><i class="fas fa-play mr-2"></i>${step.name}</span>
-                <span class="text-xs opacity-75">${step.startTriggerName || 'manual'}</span>
-            `;
-            button.onclick = () => triggerManualStart(step.stepId);
-            
-            // Initially enabled only if program is running and step is pending
-            button.disabled = true;
-            
-            return button;
-        }
-        
-        function createManualStopButton(step) {
-            const button = document.createElement('button');
-            button.id = `stop-${step.stepId}`;
-            button.className = 'bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between w-full';
-            button.innerHTML = `
-                <span><i class="fas fa-stop mr-2"></i>${step.name}</span>
-                <span class="text-xs opacity-75">${step.durationType} • ${step.stopTriggerName || 'manual'}</span>
-            `;
-            button.onclick = () => triggerManualStop(step.stepId);
-            
-            // Initially disabled - only enabled when step is running and past minimum duration
-            button.disabled = true;
-            
-            return button;
-        }
-        
-        function triggerManualStart(stepId) {
-            console.log(`Manual start triggered for step: ${stepId}`);
-            // Update step status
-            stepStatus[stepId] = 'running';
-            updateManualControlButtons();
-            
-            // Update timeline visualization immediately
-            updateTimelineExecutionState();
-            
-            // Here you would send a request to the backend to actually start the step
-            // For now, we'll just simulate the start
-            showNotification(`Started step: ${getStepName(stepId)}`, 'success');
-        }
-        
-        function triggerManualStop(stepId) {
-            console.log(`Manual stop triggered for step: ${stepId}`);
-            // Update step status
-            stepStatus[stepId] = 'completed';
-            updateManualControlButtons();
-            
-            // Update timeline visualization immediately
-            updateTimelineExecutionState();
-            
-            // Here you would send a request to the backend to actually stop the step
-            // For now, we'll just simulate the stop
-            updateItineraryExecutionState();
-        }
-        
-        function resetExecutionVisuals() {
-            // Reset DAG nodes
-            d3.selectAll('.node').classed('active completed', false);
-            
-            // Reset timeline task bars
-            d3.selectAll('.task-bar').classed('active completed', false);
-            
-            // Remove current time line
-            d3.selectAll('.current-time-line').remove();
-            
-            // Reset itinerary items
-            document.querySelectorAll('.timeline-item').forEach(item => {
-                item.classList.remove('active', 'completed');
-            });
-        }
-        
-        function updateDAGExecutionState() {
-            // Get currently active and completed steps
-            const activeSteps = getCurrentlyActiveSteps();
-            const completedSteps = getCompletedSteps();
-            
-            // Update node visual states
-            d3.selectAll('.node').each(function(d) {
-                const node = d3.select(this);
-                node.classed('active', activeSteps.includes(d.id));
-                node.classed('completed', completedSteps.includes(d.id));
-            });
-        }
-        
-        function updateTimelineExecutionState() {
-            // Remove existing current time line
-            d3.selectAll('.current-time-line').remove();
-            
-            // Add current time line if execution is active
-            if (executionState === 'running' || executionState === 'paused') {
-                const timeScale = d3.scaleLinear()
-                    .domain([0, timelineData.totalDuration])
-                    .range([0, calculateTimelineWidth(currentScale)]);
-                
-                const timelineG = timelineSvg.select('g');
-                timelineG.append('line')
-                    .attr('class', 'current-time-line')
-                    .attr('x1', timeScale(currentTime))
-                    .attr('y1', 0)
-                    .attr('x2', timeScale(currentTime))
-                    .attr('y2', timelineHeight - 80);
-            }
-            
-            // Update task bar states
-            const activeSteps = getCurrentlyActiveSteps();
-            const completedSteps = getCompletedSteps();
-            
-            d3.selectAll('.task-bar').each(function(d) {
-                const bar = d3.select(this);
-                bar.classed('active', activeSteps.includes(d.stepId));
-                bar.classed('completed', completedSteps.includes(d.stepId));
-            });
-            
-            // Update manual start bars with dynamic width
-            d3.selectAll('.manual-start-bar').each(function(d) {
-                const bar = d3.select(this);
-                const timeScale = d3.scaleLinear()
-                    .domain([0, timelineData.totalDuration])
-                    .range([0, calculateTimelineWidth(currentScale)]);
-                
-                // Update width based on current time and step status
-                let newWidth;
-                if (stepStatus[d.stepId] === 'pending' && currentTime > d.startTime) {
-                    // Dynamic width following current time
-                    const dynamicDuration = Math.min(currentTime - d.startTime, d.duration);
-                    newWidth = Math.max(2, timeScale(dynamicDuration));
-                } else if (stepStatus[d.stepId] === 'running' || stepStatus[d.stepId] === 'completed') {
-                    // Fixed width at full duration once started
-                    newWidth = Math.max(2, timeScale(d.duration));
-                } else {
-                    // Default minimal width for pending steps before their start time
-                    newWidth = 2;
-                }
-                
-                bar.attr('width', newWidth);
-                
-                // Update visual style based on status
-                if (stepStatus[d.stepId] === 'running') {
-                    bar.style('opacity', 1)
-                       .style('stroke-dasharray', 'none');
-                } else if (stepStatus[d.stepId] === 'completed') {
-                    bar.style('opacity', 0.7)
-                       .style('stroke-dasharray', 'none');
-                } else {
-                    // Pending - semi-transparent with dashed border
-                    bar.style('opacity', 0.5)
-                       .style('stroke-dasharray', '4,2');
-                }
-                
-                // Update visual state classes
-                bar.classed('active', stepStatus[d.stepId] === 'running');
-                bar.classed('completed', stepStatus[d.stepId] === 'completed');
-            });
-            
-            // Update manual start bar labels position and text
-            d3.selectAll('.manual-start-label').each(function(d) {
-                const label = d3.select(this);
-                const timeScale = d3.scaleLinear()
-                    .domain([0, timelineData.totalDuration])
-                    .range([0, calculateTimelineWidth(currentScale)]);
-                
-                // Update label position based on current width
-                let currentWidth;
-                if (stepStatus[d.stepId] === 'pending' && currentTime > d.startTime) {
-                    currentWidth = Math.min(currentTime - d.startTime, d.duration);
-                } else {
-                    currentWidth = d.duration;
-                }
-                
-                const newX = timeScale(d.startTime) + timeScale(currentWidth) / 2;
-                label.attr('x', newX);
-                
-                // Update label text
-                const prefix = stepStatus[d.stepId] === 'pending' ? 'Waiting: ' : '';
-                const availableWidth = timeScale(currentWidth) - 8;
-                const avgCharWidth = 7;
-                const maxChars = Math.floor(availableWidth / avgCharWidth);
-                
-                const fullText = prefix + d.name;
-                let displayText = fullText;
-                if (maxChars > 10 && fullText.length > maxChars) {
-                    displayText = fullText.substring(0, maxChars - 3) + '...';
-                } else if (maxChars <= 10 && fullText.length > 10) {
-                    displayText = fullText.substring(0, Math.max(3, maxChars - 3)) + '...';
-                }
-                
-                label.text(displayText);
-            });
-        }
-        
-        function updateItineraryExecutionState() {
-            const activeSteps = getCurrentlyActiveSteps();
-            const completedSteps = getCompletedSteps();
-            
-            // Update timeline items and scroll to active item
-            let activeItem = null;
-            document.querySelectorAll('.timeline-item').forEach((item, index) => {
-                const stepId = item.dataset.stepId;
-                const isActive = activeSteps.includes(stepId);
-                const isCompleted = completedSteps.includes(stepId);
-                
-                item.classList.toggle('active', isActive);
-                item.classList.toggle('completed', isCompleted);
-                
-                if (isActive && !activeItem) {
-                    activeItem = item;
-                }
-            });
-            
-            // Auto-scroll to active item
-            if (activeItem) {
-                activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-        }
-        
-        function getCurrentlyActiveSteps() {
-            const activeSteps = [];
-            
-            timelineData.tracks.forEach(track => {
-                track.steps.forEach(step => {
-                    if (currentTime >= step.startTime && currentTime <= step.endTime) {
-                        activeSteps.push(step.stepId);
-                    }
-                });
-            });
-            
-            return activeSteps;
-        }
-        
-        function getCompletedSteps() {
-            const completedSteps = [];
-            
-            timelineData.tracks.forEach(track => {
-                track.steps.forEach(step => {
-                    if (currentTime > step.endTime) {
-                        completedSteps.push(step.stepId);
-                    }
-                });
-            });
-            
-            return completedSteps;
-        }
-        
-        // Event listeners for execution controls
-        document.getElementById('start-btn').addEventListener('click', startExecution);
-        document.getElementById('pause-btn').addEventListener('click', pauseExecution);
-        document.getElementById('stop-btn').addEventListener('click', stopExecution);
-        
-        // Speed control
-        document.getElementById('speed-control').addEventListener('change', function() {
-            executionSpeed = parseFloat(this.value);
-        });
-        
-        // Initialize execution controls
-        updateExecutionControls();
-        
-        // Time format control functions
+        // Initialize time format selector and start time picker
         function initializeTimeFormatControls() {
             const timeFormatSelector = document.getElementById('time-format-selector');
             
@@ -1309,6 +1712,235 @@
                     return formatTimeForDisplay(seconds, 'relative-minutes');
             }
         }
+        
+        // Execution Control Functions
+        function startExecution() {
+            if (executionState === 'stopped') {
+                currentTime = 0;
+                // Capture the actual execution start time for Time of Day formats
+                executionStartTime = new Date();
+            }
+            
+            // Update timeline display if using Time of Day format
+            // This will recalculate future times while preserving past times
+            if (timeFormat.startsWith('time-of-day')) {
+                updateTimeline(currentScale);
+            }
+            
+            executionState = 'running';
+            updateExecutionControls();
+            updateExecutionStatus('Running');
+            
+            const speed = parseFloat(document.getElementById('speed-control').value);
+            executionSpeed = speed;
+            
+            // Start the execution timer (update every 100ms, but advance time based on speed)
+            executionTimer = setInterval(updateExecution, 100);
+        }
+        
+        function pauseExecution() {
+            executionState = 'paused';
+            updateExecutionControls();
+            updateExecutionStatus('Paused');
+            
+            if (executionTimer) {
+                clearInterval(executionTimer);
+                executionTimer = null;
+            }
+        }
+        
+        function stopExecution() {
+            executionState = 'stopped';
+            currentTime = 0;
+            updateExecutionControls();
+            updateExecutionStatus('Stopped');
+            updateTimeDisplay(0);
+            
+            if (executionTimer) {
+                clearInterval(executionTimer);
+                executionTimer = null;
+            }
+            
+            // Reset all visual states
+            resetExecutionVisuals();
+        }
+        
+        function updateExecution() {
+            // Advance time based on speed (0.1 seconds per tick * speed multiplier)
+            currentTime += 0.1 * executionSpeed;
+            
+            // Check if execution is complete
+            if (currentTime >= timelineData.totalDuration) {
+                currentTime = timelineData.totalDuration;
+                stopExecution();
+                updateExecutionStatus('Completed');
+            }
+            
+            updateTimeDisplay(currentTime);
+            updateExecutionVisuals();
+        }
+        
+        function updateExecutionControls() {
+            const startBtn = document.getElementById('start-btn');
+            const pauseBtn = document.getElementById('pause-btn');
+            const stopBtn = document.getElementById('stop-btn');
+            
+            if (executionState === 'stopped') {
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+                stopBtn.disabled = true;
+            } else if (executionState === 'running') {
+                startBtn.disabled = true;
+                pauseBtn.disabled = false;
+                stopBtn.disabled = false;
+            } else if (executionState === 'paused') {
+                startBtn.disabled = false;
+                pauseBtn.disabled = true;
+                stopBtn.disabled = false;
+            }
+        }
+        
+        function updateExecutionStatus(status) {
+            document.getElementById('execution-status').textContent = status;
+        }
+        
+        function updateTimeDisplay(time) {
+            const minutes = Math.floor(time / 60);
+            const seconds = Math.floor(time % 60);
+            const display = minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+            document.getElementById('current-time-display').textContent = display;
+        }
+        
+        function updateExecutionVisuals() {
+            updateDAGExecutionState();
+            updateTimelineExecutionState();
+            updateItineraryExecutionState();
+        }
+        
+        function resetExecutionVisuals() {
+            // Reset DAG nodes
+            d3.selectAll('.node').classed('active completed', false);
+            
+            // Reset timeline task bars
+            d3.selectAll('.task-bar').classed('active completed', false);
+            
+            // Remove current time line
+            d3.selectAll('.current-time-line').remove();
+            
+            // Reset itinerary items
+            document.querySelectorAll('.timeline-item').forEach(item => {
+                item.classList.remove('active', 'completed');
+            });
+        }
+        
+        function updateDAGExecutionState() {
+            // Get currently active and completed steps
+            const activeSteps = getCurrentlyActiveSteps();
+            const completedSteps = getCompletedSteps();
+            
+            // Update node visual states
+            d3.selectAll('.node').each(function(d) {
+                const node = d3.select(this);
+                node.classed('active', activeSteps.includes(d.id));
+                node.classed('completed', completedSteps.includes(d.id));
+            });
+        }
+        
+        function updateTimelineExecutionState() {
+            // Remove existing current time line
+            d3.selectAll('.current-time-line').remove();
+            
+            // Add current time line if execution is active
+            if (executionState === 'running' || executionState === 'paused') {
+                const timeScale = d3.scaleLinear()
+                    .domain([0, timelineData.totalDuration])
+                    .range([0, calculateTimelineWidth(currentScale)]);
+                
+                const timelineG = timelineSvg.select('g');
+                timelineG.append('line')
+                    .attr('class', 'current-time-line')
+                    .attr('x1', timeScale(currentTime))
+                    .attr('y1', 0)
+                    .attr('x2', timeScale(currentTime))
+                    .attr('y2', timelineHeight - 80);
+            }
+            
+            // Update task bar states
+            const activeSteps = getCurrentlyActiveSteps();
+            const completedSteps = getCompletedSteps();
+            
+            d3.selectAll('.task-bar').each(function(d) {
+                const bar = d3.select(this);
+                bar.classed('active', activeSteps.includes(d.stepId));
+                bar.classed('completed', completedSteps.includes(d.stepId));
+            });
+        }
+        
+        function updateItineraryExecutionState() {
+            const activeSteps = getCurrentlyActiveSteps();
+            const completedSteps = getCompletedSteps();
+            
+            // Update timeline items and scroll to active item
+            let activeItem = null;
+            document.querySelectorAll('.timeline-item').forEach((item, index) => {
+                const stepId = item.dataset.stepId;
+                const isActive = activeSteps.includes(stepId);
+                const isCompleted = completedSteps.includes(stepId);
+                
+                item.classList.toggle('active', isActive);
+                item.classList.toggle('completed', isCompleted);
+                
+                if (isActive && !activeItem) {
+                    activeItem = item;
+                }
+            });
+            
+            // Auto-scroll to active item
+            if (activeItem) {
+                activeItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+        
+        function getCurrentlyActiveSteps() {
+            const activeSteps = [];
+            
+            timelineData.tracks.forEach(track => {
+                track.steps.forEach(step => {
+                    if (currentTime >= step.startTime && currentTime <= step.endTime) {
+                        activeSteps.push(step.stepId);
+                    }
+                });
+            });
+            
+            return activeSteps;
+        }
+        
+        function getCompletedSteps() {
+            const completedSteps = [];
+            
+            timelineData.tracks.forEach(track => {
+                track.steps.forEach(step => {
+                    if (currentTime > step.endTime) {
+                        completedSteps.push(step.stepId);
+                    }
+                });
+            });
+            
+            return completedSteps;
+        }
+        
+        // Event listeners for execution controls
+        document.getElementById('start-btn').addEventListener('click', startExecution);
+        document.getElementById('pause-btn').addEventListener('click', pauseExecution);
+        document.getElementById('stop-btn').addEventListener('click', stopExecution);
+        
+        // Speed control
+        document.getElementById('speed-control').addEventListener('change', function() {
+            executionSpeed = parseFloat(this.value);
+        });
+        
+        // Initialize execution controls
+        updateExecutionControls();
         
         // View Toggle Functionality - Multi-selection mode
         let activeViews = new Set(); // Will be set by user settings
@@ -2044,7 +2676,7 @@
         });
         
         // Timeline Visualization
-        const margin = { top: 50, right: 50, bottom: 30, left: 120 };
+        const margin = { top: 50, right: 50, bottom: 30, left: 248 };
         const minTimelineWidth = 800; // Minimum timeline width
         
         // Timeline scale management
@@ -2213,10 +2845,9 @@
                 .data(timelineTracks)
                 .enter().append("g")
                 .attr("class", "task-group");
-
-            // Create regular task bars (non-manual start steps)
+            
             taskBars.selectAll(".task-bar")
-                .data(d => d.steps.filter(s => !s.hasManualStart))
+                .data(d => d.steps)
                 .enter().append("rect")
                 .attr("class", "task-bar")
                 .attr("x", d => timeScale(d.startTime))
@@ -2268,83 +2899,12 @@
                 .on("mouseout", function(d, i, nodes) {
                     hideTooltip();
                 });
-
-            // Create manual start task bars with dynamic leading edge
-            const manualStartBars = taskBars.selectAll(".manual-start-bar")
-                .data(d => d.steps.filter(s => s.hasManualStart))
-                .enter().append("g")
-                .attr("class", "manual-start-bar-group");
-
-            // Vertical start line for manual start steps
-            manualStartBars.append("line")
-                .attr("class", "manual-start-line")
-                .attr("x1", d => timeScale(d.startTime))
-                .attr("y1", d => {
-                    const track = timelineTracks.find(t => t.steps.includes(d));
-                    return trackScale(track.trackId) + 5;
-                })
-                .attr("x2", d => timeScale(d.startTime))
-                .attr("y2", d => {
-                    const track = timelineTracks.find(t => t.steps.includes(d));
-                    return trackScale(track.trackId) + trackHeight - 5;
-                })
-                .style("stroke", "#ff6b35")
-                .style("stroke-width", "3px")
-                .style("opacity", 0.8);
-
-            // Dynamic task bar for manual start steps
-            manualStartBars.append("rect")
-                .attr("class", "manual-start-bar")
-                .attr("x", d => timeScale(d.startTime))
-                .attr("y", d => {
-                    const track = timelineTracks.find(t => t.steps.includes(d));
-                    return trackScale(track.trackId) + 5;
-                })
-                .attr("width", d => {
-                    // If step hasn't been manually started, width follows current time
-                    if (stepStatus[d.stepId] === 'pending' && currentTime > d.startTime) {
-                        return Math.max(2, timeScale(Math.min(currentTime - d.startTime, d.duration)));
-                    }
-                    // If step has been started or completed, show full duration
-                    return Math.max(2, timeScale(d.duration));
-                })
-                .attr("height", trackHeight - 10)
-                .style("fill", d => {
-                    const track = timelineTracks.find(t => t.steps.includes(d));
-                    const trackIndex = timelineTracks.indexOf(track);
-                    const baseColor = colors[trackIndex % colors.length];
-                    
-                    // Different opacity based on status
-                    if (stepStatus[d.stepId] === 'pending') {
-                        const pendingColor = d3.color(baseColor);
-                        pendingColor.opacity = 0.5; // Semi-transparent for pending
-                        return pendingColor.toString();
-                    }
-                    
-                    return baseColor;
-                })
-                .style("stroke", "#ff6b35") // Orange border for manual start steps
-                .style("stroke-width", "2px")
-                .style("stroke-dasharray", d => {
-                    // Dashed border for pending manual start steps
-                    return stepStatus[d.stepId] === 'pending' ? "4,2" : "none";
-                })
-                .style("z-index", "10")
-                .style("pointer-events", "all")
-                .on("mouseover", function(d, i, nodes) {
-                    const mouseEvent = d3.event;
-                    startTooltipUpdates(d, 'timeline', mouseEvent);
-                })
-                .on("mouseout", function(d, i, nodes) {
-                    hideTooltip();
-                });
             
             // Create task labels (only for longer tasks and higher scales)
             const showLabels = scale >= 1.0;
             if (showLabels) {
-                // Labels for regular task bars
                 taskBars.selectAll(".task-label")
-                    .data(d => d.steps.filter(s => !s.hasManualStart && s.duration > 30 / scale)) // Adaptive label threshold
+                    .data(d => d.steps.filter(s => s.duration > 30 / scale)) // Adaptive label threshold
                     .enter().append("text")
                     .attr("class", "task-label")
                     .attr("x", d => timeScale(d.startTime) + timeScale(d.duration) / 2)
@@ -2367,95 +2927,6 @@
                         }
                         return d.name;
                     });
-
-                // Labels for manual start bars  
-                manualStartBars.append("text")
-                    .attr("class", "manual-start-label")
-                    .attr("x", d => {
-                        // Position label based on current width
-                        const currentWidth = stepStatus[d.stepId] === 'pending' && currentTime > d.startTime
-                            ? Math.min(currentTime - d.startTime, d.duration)
-                            : d.duration;
-                        return timeScale(d.startTime) + timeScale(currentWidth) / 2;
-                    })
-                    .attr("y", d => {
-                        const track = timelineTracks.find(t => t.steps.includes(d));
-                        return trackScale(track.trackId) + trackHeight / 2;
-                    })
-                    .text(d => {
-                        // Show "Waiting..." prefix for pending manual steps
-                        const prefix = stepStatus[d.stepId] === 'pending' ? 'Waiting: ' : '';
-                        const currentWidth = stepStatus[d.stepId] === 'pending' && currentTime > d.startTime
-                            ? Math.min(currentTime - d.startTime, d.duration)
-                            : d.duration;
-                        const availableWidth = timeScale(currentWidth) - 8;
-                        const avgCharWidth = 7;
-                        const maxChars = Math.floor(availableWidth / avgCharWidth);
-                        
-                        const fullText = prefix + d.name;
-                        if (maxChars > 10 && fullText.length > maxChars) {
-                            return fullText.substring(0, maxChars - 3) + '...';
-                        } else if (maxChars <= 10 && fullText.length > 10) {
-                            return fullText.substring(0, Math.max(3, maxChars - 3)) + '...';
-                        }
-                        return fullText;
-                    });
-            }
-            
-            // Add small stop buttons for variable/indefinite duration steps
-            const showStopButtons = scale >= 0.5;
-            if (showStopButtons) {
-                taskBars.selectAll(".stop-button")
-                    .data(d => d.steps.filter(s => s.hasManualStop))
-                    .enter().append("circle")
-                    .attr("class", "stop-button")
-                    .attr("cx", d => timeScale(d.startTime + d.duration) - 12)
-                    .attr("cy", d => {
-                        const track = timelineTracks.find(t => t.steps.includes(d));
-                        return trackScale(track.trackId) + trackHeight / 2;
-                    })
-                    .attr("r", 8)
-                    .style("fill", "#ef4444")
-                    .style("stroke", "#ffffff")
-                    .style("stroke-width", "2px")
-                    .style("cursor", "pointer")
-                    .style("opacity", 0.8)
-                    .style("z-index", "20")
-                    .on("mouseover", function(d) {
-                        d3.select(this).style("opacity", 1);
-                        // Show tooltip
-                        const tooltip = d3.select("#tooltip");
-                        tooltip.html(`<strong>Stop: ${d.name}</strong><br/>Click to manually stop this ${d.durationType} duration step`)
-                            .style("left", (d3.event.pageX + 10) + "px")
-                            .style("top", (d3.event.pageY - 28) + "px")
-                            .style("opacity", 1);
-                    })
-                    .on("mouseout", function(d) {
-                        d3.select(this).style("opacity", 0.8);
-                        d3.select("#tooltip").style("opacity", 0);
-                    })
-                    .on("click", function(d) {
-                        d3.event.stopPropagation(); // Prevent event bubbling
-                        triggerManualStop(d.stepId);
-                    });
-                
-                // Add stop icon inside the button
-                taskBars.selectAll(".stop-icon")
-                    .data(d => d.steps.filter(s => s.hasManualStop))
-                    .enter().append("text")
-                    .attr("class", "stop-icon fas")
-                    .attr("x", d => timeScale(d.startTime + d.duration) - 12)
-                    .attr("y", d => {
-                        const track = timelineTracks.find(t => t.steps.includes(d));
-                        return trackScale(track.trackId) + trackHeight / 2 + 3;
-                    })
-                    .attr("font-family", "Font Awesome 6 Free")
-                    .attr("font-weight", "900")
-                    .attr("font-size", "8px")
-                    .attr("fill", "#ffffff")
-                    .attr("text-anchor", "middle")
-                    .style("pointer-events", "none")
-                    .html("&#xf04d;"); // FontAwesome stop icon
             }
             
             // Add flex icons for flexible steps
@@ -3584,8 +4055,8 @@
                     return a.originalStartTime - b.originalStartTime;
                 }
                 // For steps starting at the same time, prioritize dependencies
-                const aHasDep = a.trigger && (a.trigger.type === 'afterStep' || a.trigger.type === 'afterStepWithBuffer');
-                const bHasDep = b.trigger && (b.trigger.type === 'afterStep' || b.trigger.type === 'afterStepWithBuffer');
+                const aHasDep = a.startTrigger && (a.startTrigger.type === 'afterStep' || a.startTrigger.type === 'afterStepWithBuffer');
+                const bHasDep = b.startTrigger && (b.startTrigger.type === 'afterStep' || b.startTrigger.type === 'afterStepWithBuffer');
                 
                 if (aHasDep && !bHasDep) return 1; // a depends on something, process after b
                 if (!aHasDep && bHasDep) return -1; // b depends on something, process after a
@@ -3618,12 +4089,12 @@
                 }
                 
                 // SANITY CHECK: Validate afterStep dependencies are not violated
-                if (step.trigger && (step.trigger.type === 'afterStep' || step.trigger.type === 'afterStepWithBuffer')) {
-                    const referencedStepId = step.trigger.stepId;
+                if (step.startTrigger && (step.startTrigger.type === 'afterStep' || step.startTrigger.type === 'afterStepWithBuffer')) {
+                    const referencedStepId = step.startTrigger.stepId;
                     const referencedStep = optimizedSteps[referencedStepId];
                     if (referencedStep) {
                         const refEndTime = (referencedStep.startTime || referencedStep.originalStartTime) + referencedStep.duration;
-                        const offsetSeconds = step.trigger.offsetSeconds || 0;
+                        const offsetSeconds = step.startTrigger.offsetSeconds || 0;
                         const requiredStartTime = refEndTime + offsetSeconds;
                         
                         if (step.startTime < requiredStartTime) {
@@ -3676,8 +4147,8 @@
                             console.log(`         ${stepId}: Optimized=${wasOptimized}, Delay=${delay}s, Start=${step.startTime || step.originalStartTime}s`);
                             
                             // Check dependencies
-                            if (step.trigger && (step.trigger.type === 'afterStep' || step.trigger.type === 'afterStepWithBuffer')) {
-                                console.log(`            Depends on: ${step.trigger.stepId}`);
+                            if (step.startTrigger && (step.startTrigger.type === 'afterStep' || step.startTrigger.type === 'afterStepWithBuffer')) {
+                                console.log(`            Depends on: ${step.startTrigger.stepId}`);
                             }
                         }
                     });
@@ -4028,12 +4499,12 @@
              * Calculate earliest time based on step dependencies
              * CRITICAL: afterStep dependencies must be strictly enforced
              */
-            const trigger = step.trigger || {};
+            const startTrigger = step.startTrigger || {};
             
-            if (trigger.type === 'afterStep' || trigger.type === 'afterStepWithBuffer') {
-                const referencedStepId = trigger.stepId;
-                const offsetSeconds = trigger.offsetSeconds || 0;
-                const event = trigger.event || 'end';
+            if (startTrigger.type === 'afterStep' || startTrigger.type === 'afterStepWithBuffer') {
+                const referencedStepId = startTrigger.stepId;
+                const offsetSeconds = startTrigger.offsetSeconds || 0;
+                const event = startTrigger.event || 'end';
                 
                 const referencedStep = optimizedSteps[referencedStepId];
                 if (referencedStep) {
@@ -4045,8 +4516,8 @@
                     // For afterStep triggers, this is a hard constraint - step CANNOT start before this time
                     return Math.max(step.originalStartTime, dependencyTime);
                 }
-            } else if (trigger.type === 'programStart') {
-                const offsetSeconds = trigger.offsetSeconds || 0;
+            } else if (startTrigger.type === 'programStart') {
+                const offsetSeconds = startTrigger.offsetSeconds || 0;
                 return Math.max(0, offsetSeconds);
             }
             
@@ -4168,14 +4639,14 @@
             const violations = [];
             
             Object.values(optimizedSteps).forEach(step => {
-                if (step.trigger && (step.trigger.type === 'afterStep' || step.trigger.type === 'afterStepWithBuffer')) {
-                    const referencedStepId = step.trigger.stepId;
+                if (step.startTrigger && (step.startTrigger.type === 'afterStep' || step.startTrigger.type === 'afterStepWithBuffer')) {
+                    const referencedStepId = step.startTrigger.stepId;
                     const referencedStep = optimizedSteps[referencedStepId];
                     
                     if (referencedStep) {
                         const stepStart = step.startTime || step.originalStartTime;
                         const refEnd = (referencedStep.startTime || referencedStep.originalStartTime) + referencedStep.duration;
-                        const offsetSeconds = step.trigger.offsetSeconds || 0;
+                        const offsetSeconds = step.startTrigger.offsetSeconds || 0;
                         const requiredStart = refEnd + offsetSeconds;
                         
                         if (stepStart < requiredStart) {
@@ -4394,224 +4865,6 @@
                 }
             }
         }
-        
-        function getStepName(stepId) {
-            for (const track of timelineData.tracks) {
-                for (const step of track.steps) {
-                    if (step.stepId === stepId) {
-                        return step.name;
-                    }
-                }
-            }
-            return stepId;
-        }
-        
-        function updateManualControlButtons() {
-            timelineData.tracks.forEach(track => {
-                track.steps.forEach(step => {
-                    const startButton = document.getElementById(`start-${step.stepId}`);
-                    const stopButton = document.getElementById(`stop-${step.stepId}`);
-                    
-                    if (startButton) {
-                        // Enable start button only if step is pending and execution is running
-                        startButton.disabled = !(executionState === 'running' && stepStatus[step.stepId] === 'pending');
-                    }
-                    
-                    if (stopButton) {
-                        // Enable stop button only if step is running
-                        stopButton.disabled = !(stepStatus[step.stepId] === 'running');
-                    }
-                });
-            });
-        }
-        
-        // Show notification
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded shadow-lg text-white transition-opacity duration-300 ${
-                type === 'success' ? 'bg-green-500' : 
-                type === 'error' ? 'bg-red-500' : 'bg-blue-500'
-            }`;
-            notification.textContent = message;
-            
-            document.body.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.style.opacity = '0';
-                setTimeout(() => {
-                    document.body.removeChild(notification);
-                }, 300);
-            }, 3000);
-        }
-        
-        // Load settings on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadUserSettings();
-            initializeManualControls();
-        });
-        
-        // Handle window resize to ensure DAG SVG stays responsive
-        window.addEventListener('resize', function() {
-            // Debounce resize events to avoid excessive re-rendering
-            clearTimeout(window.resizeTimeout);
-            window.resizeTimeout = setTimeout(function() {
-                if (activeViews.has('dag')) {
-                    renderDAG();
-                }
-                if (activeViews.has('timeline')) {
-                    updateTimeline(currentScale);
-                }
-            }, 100);
-        });
-        
-        // Execution Control Functions (state variables already declared at top)
-        function startExecution() {
-            if (executionState === 'stopped') {
-                currentTime = 0;
-                // Capture the actual execution start time for Time of Day formats
-                executionStartTime = new Date();
-            }
-            
-            // Update timeline display if using Time of Day format
-            // This will recalculate future times while preserving past times
-            if (timeFormat.startsWith('time-of-day')) {
-                updateTimeline(currentScale);
-            }
-            
-            executionState = 'running';
-            updateExecutionControls();
-            updateExecutionStatus('Running');
-            
-            const speed = parseFloat(document.getElementById('speed-control').value);
-            executionSpeed = speed;
-            
-            // Start the execution timer (update every 100ms, but advance time based on speed)
-            executionTimer = setInterval(updateExecution, 100);
-        }
-        
-        function pauseExecution() {
-            executionState = 'paused';
-            updateExecutionControls();
-            updateExecutionStatus('Paused');
-            
-            if (executionTimer) {
-                clearInterval(executionTimer);
-                executionTimer = null;
-            }
-        }
-        
-        function stopExecution() {
-            executionState = 'stopped';
-            currentTime = 0;
-            updateExecutionControls();
-            updateExecutionStatus('Stopped');
-            updateTimeDisplay(0);
-            
-            if (executionTimer) {
-                clearInterval(executionTimer);
-                executionTimer = null;
-            }
-            
-            // Reset all visual states
-            resetExecutionVisuals();
-        }
-        
-        function updateExecution() {
-            // Advance time based on speed (0.1 seconds per tick * speed multiplier)
-            currentTime += 0.1 * executionSpeed;
-            
-            // Check if execution is complete
-            if (currentTime >= timelineData.totalDuration) {
-                currentTime = timelineData.totalDuration;
-                stopExecution();
-                updateExecutionStatus('Completed');
-            }
-            
-            updateTimeDisplay(currentTime);
-            updateExecutionVisuals();
-        }
-        
-        function updateExecutionControls() {
-            const startBtn = document.getElementById('start-btn');
-            const pauseBtn = document.getElementById('pause-btn');
-            const stopBtn = document.getElementById('stop-btn');
-            
-            if (executionState === 'stopped') {
-                startBtn.disabled = false;
-                pauseBtn.disabled = true;
-                stopBtn.disabled = true;
-            } else if (executionState === 'running') {
-                startBtn.disabled = true;
-                pauseBtn.disabled = false;
-                stopBtn.disabled = false;
-            } else if (executionState === 'paused') {
-                startBtn.disabled = false;
-                pauseBtn.disabled = true;
-                stopBtn.disabled = false;
-            }
-            
-            // Update manual control buttons
-            updateManualControlButtons();
-        }
-        
-        function updateExecutionStatus(status) {
-            document.getElementById('execution-status').textContent = status;
-        }
-        
-        function updateTimeDisplay(time) {
-            const minutes = Math.floor(time / 60);
-            const seconds = Math.floor(time % 60);
-            const display = minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
-            document.getElementById('current-time-display').textContent = display;
-        }
-        
-        function updateExecutionVisuals() {
-            updateDAGExecutionState();
-            updateTimelineExecutionState();
-            updateItineraryExecutionState();
-        }
-        
-        function resetExecutionVisuals() {
-            // Reset DAG visual states
-            d3.selectAll('.node').each(function(d) {
-                const node = d3.select(this);
-                node.classed('active', false);
-                node.classed('completed', false);
-            });
-            
-            // Reset timeline visual states  
-            d3.selectAll('.task-bar, .manual-start-bar').each(function(d) {
-                const bar = d3.select(this);
-                bar.classed('active', false);
-                bar.classed('completed', false);
-            });
-            
-            // Reset all step status to pending
-            Object.keys(stepStatus).forEach(stepId => {
-                stepStatus[stepId] = 'pending';
-            });
-            
-            // Reset manual control buttons
-            updateManualControlButtons();
-        }
-        
-        // Settings Management
-        const defaultSettings = {
-            theme: 'light',
-            defaultViews: ['timeline'],
-            defaultTimeFormat: 'relative-minutes',
-            enabledPresets: []
-        };
-        
-        let userSettings = { ...defaultSettings };
-        
-        // Load user settings
-        function loadUserSettings() {
-            // Simple fallback for settings
-            timeFormat = 'relative-minutes';
-            activeViews = new Set(['timeline']);
-        }
-        
     </script>
 </body>
 </html>

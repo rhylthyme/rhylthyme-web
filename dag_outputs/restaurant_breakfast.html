@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DAG Visualization - Flex Steps and Auto-Planning Test</title>
+    <title>DAG Visualization - Restaurant Breakfast Service</title>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -381,12 +381,12 @@
 <body class="bg-gray-100 font-sans">
     <div class="max-w-7xl mx-auto bg-white rounded-lg shadow-lg p-6">
         <h1 class="text-3xl font-bold text-gray-800 mb-2 pb-2 border-b-2 flex items-center gap-3" style="border-color: #4B46B9;">
-            <i class="fas fa-building text-gray-600" title="Environment Type: N/A"></i>
-            Flex Steps and Auto-Planning Test
+            <i class="fas fa-utensils text-gray-600" title="Environment Type: kitchen"></i>
+            Restaurant Breakfast Service
         </h1>
         
         <div class="text-dag-gray italic mb-8 leading-relaxed text-lg">
-            Test program demonstrating flexible steps and auto-planning strategies
+            Professional restaurant breakfast service workflow with coordinated cooking and plating
         </div>
         
         <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 text-sm">
@@ -394,7 +394,7 @@
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Estimated Total Time</span>
                 <div class="flex flex-col items-center">
                     
-                    <span class="text-dag-green font-semibold text-sm">45 minutes</span>
+                    <span class="text-dag-green font-semibold text-sm">11 minutes</span>
                 </div>
             </div>
             <div class="flex flex-col items-center text-center">
@@ -403,11 +403,11 @@
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Environment Type</span>
-                <span class="text-dag-purple font-semibold text-sm">N/A</span>
+                <span class="text-dag-purple font-semibold text-sm">kitchen</span>
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Environment</span>
-                <span class="text-dag-purple font-semibold text-sm" title="">home_kitchen</span>
+                <span class="text-dag-purple font-semibold text-sm" title="">N/A</span>
             </div>
             <div class="flex flex-col items-center text-center">
                 <span class="font-bold text-gray-600 uppercase text-xs tracking-wide mb-1">Resource Constraints</span>
@@ -701,200 +701,236 @@
     "description": "Program initialization"
   },
   {
-    "id": "gather-ingredients",
-    "name": "Gather Ingredients",
-    "track": "prep",
-    "track_name": "Preparation Track",
+    "id": "eggs-crack-whisk",
+    "name": "Crack and Whisk Eggs",
+    "track": "scrambled-eggs",
+    "track_name": "Scrambled Eggs",
     "type": "step",
-    "description": "Collect all ingredients from pantry and fridge",
+    "description": "Crack eggs into a bowl and whisk with salt and pepper",
     "task": "prep-work",
-    "duration": "300s",
+    "duration": "60s",
     "preBuffer": {},
-    "postBuffer": {}
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
   },
   {
-    "id": "prep-vegetables",
-    "name": "Prep Vegetables",
-    "track": "prep",
-    "track_name": "Preparation Track",
+    "id": "eggs-heat-pan",
+    "name": "Heat Pan",
+    "track": "scrambled-eggs",
+    "track_name": "Scrambled Eggs",
     "type": "step",
-    "description": "Wash, chop, and prepare vegetables",
+    "description": "Place pan on stove and heat to medium",
+    "task": "stove-burner",
+    "duration": "60-120s (default: 90s)",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "eggs-cook",
+    "name": "Cook Eggs",
+    "track": "scrambled-eggs",
+    "track_name": "Scrambled Eggs",
+    "type": "step",
+    "description": "Pour eggs into pan and cook until done",
+    "task": "stove-burner",
+    "duration": "120-180s (default: 150s)",
+    "preBuffer": {},
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
+  },
+  {
+    "id": "bacon-prep",
+    "name": "Prepare Bacon",
+    "track": "bacon",
+    "track_name": "Bacon",
+    "type": "step",
+    "description": "Place bacon strips in cold pan",
     "task": "prep-work",
-    "duration": "600-1200s (default: 900s)",
+    "duration": "60s",
     "preBuffer": {},
-    "postBuffer": {}
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
   },
   {
-    "id": "preheat-oven",
-    "name": "Preheat Oven",
-    "track": "cooking",
-    "track_name": "Cooking Track",
+    "id": "bacon-cook",
+    "name": "Cook Bacon",
+    "track": "bacon",
+    "track_name": "Bacon",
     "type": "step",
-    "description": "Preheat oven to 375\u00b0F",
-    "task": "oven",
-    "duration": "600s",
+    "description": "Cook bacon, flipping occasionally until crispy",
+    "task": "stove-burner",
+    "duration": "480-720s (default: 600s)",
     "preBuffer": {},
-    "postBuffer": {}
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
   },
   {
-    "id": "cook-main-dish",
-    "name": "Cook Main Dish",
-    "track": "cooking",
-    "track_name": "Cooking Track",
+    "id": "toast-cook",
+    "name": "Make Toast",
+    "track": "toast",
+    "track_name": "Toast",
     "type": "step",
-    "description": "Cook the main course in the oven",
-    "task": "oven",
-    "duration": "1800s",
+    "description": "Place bread in toaster and toast until golden brown",
+    "task": "toaster",
+    "duration": "210s",
     "preBuffer": {},
-    "postBuffer": {}
-  },
-  {
-    "id": "prepare-salad",
-    "name": "Prepare Salad",
-    "track": "sides",
-    "track_name": "Side Dishes",
-    "type": "step",
-    "description": "Make a fresh garden salad",
-    "task": "prep-work",
-    "duration": "600s",
-    "preBuffer": {},
-    "postBuffer": {}
-  },
-  {
-    "id": "warm-bread",
-    "name": "Warm Bread",
-    "track": "sides",
-    "track_name": "Side Dishes",
-    "type": "step",
-    "description": "Warm bread in the oven",
-    "task": "oven",
-    "duration": "300s",
-    "preBuffer": {},
-    "postBuffer": {}
+    "postBuffer": {},
+    "flex": {
+      "enabled": false
+    }
   }
 ];
         const edges = [
   {
     "source": "program_start",
-    "target": "gather-ingredients",
+    "target": "eggs-crack-whisk",
     "type": "programStart"
   },
   {
-    "source": "gather-ingredients",
-    "target": "prep-vegetables",
+    "source": "eggs-crack-whisk",
+    "target": "eggs-heat-pan",
+    "type": "afterStep"
+  },
+  {
+    "source": "eggs-heat-pan",
+    "target": "eggs-cook",
     "type": "afterStep"
   },
   {
     "source": "program_start",
-    "target": "preheat-oven",
+    "target": "bacon-prep",
     "type": "programStart"
   },
   {
-    "source": "preheat-oven",
-    "target": "cook-main-dish",
+    "source": "bacon-prep",
+    "target": "bacon-cook",
     "type": "afterStep"
   },
   {
     "source": "program_start",
-    "target": "prepare-salad",
+    "target": "toast-cook",
     "type": "programStartOffset",
-    "offset": 900
-  },
-  {
-    "source": "cook-main-dish",
-    "target": "warm-bread",
-    "type": "afterStep"
+    "offset": 120
   }
 ];
         const timelineData = {
   "tracks": [
     {
-      "trackId": "prep",
-      "name": "Preparation Track",
+      "trackId": "scrambled-eggs",
+      "name": "Scrambled Eggs",
       "steps": [
         {
-          "stepId": "gather-ingredients",
-          "name": "Gather Ingredients",
+          "stepId": "eggs-crack-whisk",
+          "name": "Crack and Whisk Eggs",
           "startTime": 0,
-          "duration": 300,
+          "duration": 60,
+          "endTime": 60,
+          "description": "Crack eggs into a bowl and whisk with salt and pepper",
+          "task": "prep-work",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "eggs-heat-pan",
+          "name": "Heat Pan",
+          "startTime": 60,
+          "duration": 90,
+          "endTime": 150,
+          "description": "Place pan on stove and heat to medium",
+          "task": "stove-burner",
+          "flex": {
+            "enabled": false
+          }
+        },
+        {
+          "stepId": "eggs-cook",
+          "name": "Cook Eggs",
+          "startTime": 150,
+          "duration": 150,
           "endTime": 300,
-          "description": "Collect all ingredients from pantry and fridge",
-          "task": "prep-work"
-        },
-        {
-          "stepId": "prep-vegetables",
-          "name": "Prep Vegetables",
-          "startTime": 300,
-          "duration": 900,
-          "endTime": 1200,
-          "description": "Wash, chop, and prepare vegetables",
-          "task": "prep-work"
+          "description": "Pour eggs into pan and cook until done",
+          "task": "stove-burner",
+          "flex": {
+            "enabled": false
+          }
         }
       ]
     },
     {
-      "trackId": "cooking",
-      "name": "Cooking Track",
+      "trackId": "bacon",
+      "name": "Bacon",
       "steps": [
         {
-          "stepId": "preheat-oven",
-          "name": "Preheat Oven",
+          "stepId": "bacon-prep",
+          "name": "Prepare Bacon",
           "startTime": 0,
-          "duration": 600,
-          "endTime": 600,
-          "description": "Preheat oven to 375\u00b0F",
-          "task": "oven"
+          "duration": 60,
+          "endTime": 60,
+          "description": "Place bacon strips in cold pan",
+          "task": "prep-work",
+          "flex": {
+            "enabled": false
+          }
         },
         {
-          "stepId": "cook-main-dish",
-          "name": "Cook Main Dish",
-          "startTime": 600,
-          "duration": 1800,
-          "endTime": 2400,
-          "description": "Cook the main course in the oven",
-          "task": "oven"
+          "stepId": "bacon-cook",
+          "name": "Cook Bacon",
+          "startTime": 60,
+          "duration": 600,
+          "endTime": 660,
+          "description": "Cook bacon, flipping occasionally until crispy",
+          "task": "stove-burner",
+          "flex": {
+            "enabled": false
+          }
         }
       ]
     },
     {
-      "trackId": "sides",
-      "name": "Side Dishes",
+      "trackId": "toast",
+      "name": "Toast",
       "steps": [
         {
-          "stepId": "prepare-salad",
-          "name": "Prepare Salad",
-          "startTime": 900,
-          "duration": 600,
-          "endTime": 1500,
-          "description": "Make a fresh garden salad",
-          "task": "prep-work"
-        },
-        {
-          "stepId": "warm-bread",
-          "name": "Warm Bread",
-          "startTime": 2400,
-          "duration": 300,
-          "endTime": 2700,
-          "description": "Warm bread in the oven",
-          "task": "oven"
+          "stepId": "toast-cook",
+          "name": "Make Toast",
+          "startTime": 120,
+          "duration": 210,
+          "endTime": 330,
+          "description": "Place bread in toaster and toast until golden brown",
+          "task": "toaster",
+          "flex": {
+            "enabled": false
+          }
         }
       ]
     }
   ],
-  "totalDuration": 2700,
+  "totalDuration": 660,
   "timeScale": "seconds"
 };
         const environmentData = {};
         const resourceConstraints = [
   {
-    "task": "prep-work",
-    "maxConcurrent": 1,
-    "description": "Preparation workspace and tools"
+    "task": "stove-burner",
+    "maxConcurrent": 4,
+    "description": "Maximum number of stove burners that can be used simultaneously"
   },
   {
-    "task": "oven",
-    "maxConcurrent": 1,
-    "description": "Kitchen oven"
+    "task": "toaster",
+    "maxConcurrent": 2,
+    "description": "Maximum number of toasters that can be used simultaneously"
   }
 ];
         
@@ -2615,7 +2651,7 @@
         });
         
         // Timeline Visualization
-        const margin = { top: 50, right: 50, bottom: 30, left: 176 };
+        const margin = { top: 50, right: 50, bottom: 30, left: 152 };
         const minTimelineWidth = 800; // Minimum timeline width
         
         // Timeline scale management
@@ -2851,7 +2887,21 @@
                         const track = timelineTracks.find(t => t.steps.includes(d));
                         return trackScale(track.trackId) + trackHeight / 2;
                     })
-                    .text(d => d.name.length > 20 ? d.name.substring(0, 20) + '...' : d.name);
+                    .text(d => {
+                        // Calculate available width for text based on step duration
+                        const availableWidth = timeScale(d.duration) - 8; // 8px padding
+                        const avgCharWidth = 7; // Approximate character width in pixels
+                        const maxChars = Math.floor(availableWidth / avgCharWidth);
+                        
+                        // Only truncate if necessary and if the step is reasonably wide
+                        if (maxChars > 10 && d.name.length > maxChars) {
+                            return d.name.substring(0, maxChars - 3) + '...';
+                        } else if (maxChars <= 10 && d.name.length > 10) {
+                            // For very narrow steps, use a minimal truncation
+                            return d.name.substring(0, Math.max(3, maxChars - 3)) + '...';
+                        }
+                        return d.name;
+                    });
             }
             
             // Add flex icons for flexible steps
@@ -2871,7 +2921,7 @@
                     .attr("font-size", "10px")
                     .attr("fill", "#10b981")
                     .style("pointer-events", "none")
-                    .text(""); // FontAwesome expand arrows icon
+                    .html("&#xf065;"); // FontAwesome expand arrows icon
             }
             
             // Create buffer bars with desaturated colors (skip at very small scales for performance)
