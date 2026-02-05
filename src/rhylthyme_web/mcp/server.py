@@ -38,6 +38,13 @@ try:
 except ImportError:
     VISUALIZER_AVAILABLE = False
 
+# Importer imports
+try:
+    from rhylthyme_importers import ImporterRegistry, TheMealDBImporter
+    IMPORTERS_AVAILABLE = True
+except ImportError:
+    IMPORTERS_AVAILABLE = False
+
 
 # Tool schema for visualize_program
 VISUALIZE_TOOL_SCHEMA = {
@@ -127,6 +134,23 @@ VISUALIZE_TOOL_SCHEMA = {
     "required": ["program"]
 }
 
+# Tool schema for importing from TheMealDB
+IMPORT_TOOL_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "action": {
+            "type": "string",
+            "enum": ["search", "import", "random"],
+            "description": "Action: 'search' to find recipes, 'import' to import by ID, 'random' for a random recipe"
+        },
+        "query": {
+            "type": "string",
+            "description": "Search query (for search) or meal ID (for import)"
+        }
+    },
+    "required": ["action"]
+}
+
 
 def create_server() -> Server:
     """Create and configure the MCP server."""
@@ -135,7 +159,7 @@ def create_server() -> Server:
     @server.list_tools()
     async def list_tools() -> list[Tool]:
         """List available tools."""
-        return [
+        tools = [
             Tool(
                 name="visualize_program",
                 description="""Creates an interactive schedule visualization from a Rhylthyme program.
@@ -163,9 +187,107 @@ Duration values are in seconds:
             )
         ]
 
+        if IMPORTERS_AVAILABLE:
+            tools.append(Tool(
+                name="themealdb_import",
+                description="""Import cooking recipes from TheMealDB to create Rhylthyme cooking schedules.
+
+IMPORTANT: Use this tool whenever a user asks about cooking, recipes, or meal preparation.
+
+Actions:
+- "search": Search for recipes by name (e.g., "chicken curry", "lasagna")
+- "import": Import a specific recipe by meal ID to get a full cooking schedule
+- "random": Get a random recipe for inspiration
+
+Workflow:
+1. First use action="search" with query="dish name" to find recipes
+2. Tell the user what you found from TheMealDB
+3. Use action="import" with the meal ID to get the full cooking schedule
+4. Use visualize_program to display the schedule
+
+Always tell the user you are using TheMealDB as the source.""",
+                inputSchema=IMPORT_TOOL_SCHEMA
+            ))
+
+        return tools
+
     @server.call_tool()
     async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         """Handle tool calls."""
+
+        # Handle TheMealDB import tool
+        if name == "themealdb_import":
+            if not IMPORTERS_AVAILABLE:
+                return [TextContent(type="text", text="Error: Importers not available. Install rhylthyme-importers.")]
+
+            action = arguments.get("action")
+            query = arguments.get("query", "")
+
+            try:
+                importer = TheMealDBImporter()
+
+                if action == "search":
+                    if not query:
+                        return [TextContent(type="text", text="Error: Search query required")]
+                    results = importer.search(query)
+                    if not results:
+                        return [TextContent(type="text", text=f"No recipes found on TheMealDB for '{query}'")]
+
+                    response = f"Found {len(results)} recipe(s) on TheMealDB for '{query}':\n\n"
+                    for r in results[:5]:
+                        response += f"- **{r['name']}** (ID: {r['id']})\n"
+                        if r.get('description'):
+                            response += f"  {r['description']}\n"
+                    response += "\nUse action='import' with the meal ID to get the full cooking schedule."
+                    return [TextContent(type="text", text=response)]
+
+                elif action == "import":
+                    if not query:
+                        return [TextContent(type="text", text="Error: Meal ID required for import")]
+                    result = importer.import_from_url(query)
+                    if not result.success:
+                        return [TextContent(type="text", text=f"Error importing from TheMealDB: {result.error}")]
+
+                    program = result.program
+                    track_count = len(program.get("tracks", []))
+                    step_count = sum(len(t.get("steps", [])) for t in program.get("tracks", []))
+                    ingredients = program.get("metadata", {}).get("ingredients", [])
+
+                    response = f"Successfully imported **{program['name']}** from TheMealDB!\n\n"
+                    response += f"**Cooking Schedule:**\n"
+                    response += f"- {track_count} track(s), {step_count} step(s)\n"
+                    if ingredients:
+                        response += f"- {len(ingredients)} ingredients\n"
+                    response += f"\n**Tracks:**\n"
+                    for t in program.get("tracks", []):
+                        response += f"- {t['name']}: {len(t['steps'])} steps\n"
+                    response += "\nUse visualize_program with this program to display the interactive schedule."
+                    response += f"\n\n```json\n{json.dumps(program, indent=2)}\n```"
+                    return [TextContent(type="text", text=response)]
+
+                elif action == "random":
+                    meal = importer.get_random_meal()
+                    if not meal:
+                        return [TextContent(type="text", text="Error: Failed to get random meal from TheMealDB")]
+
+                    result = importer.import_from_url(meal.get("idMeal"))
+                    if not result.success:
+                        return [TextContent(type="text", text=f"Error importing: {result.error}")]
+
+                    program = result.program
+                    response = f"Random recipe from TheMealDB: **{program['name']}**!\n\n"
+                    response += f"Category: {program.get('metadata', {}).get('category', 'Unknown')}\n"
+                    response += f"Cuisine: {program.get('metadata', {}).get('area', 'Unknown')}\n\n"
+                    response += "Use visualize_program with this program to display the cooking schedule."
+                    response += f"\n\n```json\n{json.dumps(program, indent=2)}\n```"
+                    return [TextContent(type="text", text=response)]
+
+                else:
+                    return [TextContent(type="text", text=f"Unknown action: {action}. Use 'search', 'import', or 'random'.")]
+
+            except Exception as e:
+                return [TextContent(type="text", text=f"Error with TheMealDB: {str(e)}")]
+
         if name != "visualize_program":
             return [TextContent(type="text", text=f"Unknown tool: {name}")]
 

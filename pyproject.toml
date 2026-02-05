@@ -4,21 +4,23 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rhylthyme-web"
-version = "0.1.0"
+version = "0.2.0"
 description = "Web visualization for Rhylthyme program schedules"
 readme = "README.md"
-requires-python = ">=3.10"
-license = {text = "MIT"}
+requires-python = ">=3.12"
+license = {text = "Apache-2.0"}
 dependencies = [
     "flask>=2.0.0",
     "pyyaml>=6.0",
     "anthropic>=0.18.0",
+    "requests>=2.28.0",
 ]
 
 [project.optional-dependencies]
+importers = ["rhylthyme-importers"]
 mcp = ["mcp>=1.0.0"]
 chat = ["anthropic>=0.18.0"]
-all = ["mcp>=1.0.0", "anthropic>=0.18.0"]
+all = ["mcp>=1.0.0", "anthropic>=0.18.0", "rhylthyme-importers"]
 
 [project.scripts]
 rhylthyme-visualize = "rhylthyme_web.web.web_visualizer:main"

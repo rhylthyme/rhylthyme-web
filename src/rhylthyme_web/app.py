@@ -19,6 +19,12 @@ try:
 except ImportError:
     ANTHROPIC_AVAILABLE = False
 
+try:
+    from rhylthyme_importers import ImporterRegistry, TheMealDBImporter, ProtocolsIOImporter
+    IMPORTERS_AVAILABLE = True
+except ImportError:
+    IMPORTERS_AVAILABLE = False
+
 from rhylthyme_web.web.web_visualizer import generate_dag_visualization
 
 app = Flask(__name__)
@@ -482,6 +488,26 @@ MAIN_PAGE = '''
                         </div>
                     </div>
                 </div>
+
+                <!-- Prompts Section -->
+                <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid #e5e7eb;">
+                    <div class="examples-header">
+                        <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wide">Prompts</h2>
+                        <button id="prompts-toggle" class="examples-toggle" onclick="togglePrompts()" title="Toggle prompts">
+                            <i class="fas fa-chevron-up"></i>
+                        </button>
+                    </div>
+                    <div id="prompts-content" class="examples-content">
+                        <div class="space-y-2">
+                            <a href="#" onclick="runPrompt('Import a chicken curry recipe from TheMealDB and create a cooking schedule'); return false;" class="example-link">
+                                <i class="fas fa-utensils mr-2"></i>Nutty Chicken Curry (TheMealDB)
+                            </a>
+                            <a href="#" onclick="runPrompt('Import the RNA Extraction with Trizol protocol from protocols.io and create a lab schedule'); return false;" class="example-link">
+                                <i class="fas fa-flask mr-2"></i>RNA Extraction with Trizol (protocols.io)
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </aside>
 
@@ -585,6 +611,19 @@ MAIN_PAGE = '''
             const examplesToggle = document.getElementById('examples-toggle');
             examplesContent.classList.toggle('collapsed');
             examplesToggle.classList.toggle('collapsed');
+        }
+
+        function togglePrompts() {
+            const promptsContent = document.getElementById('prompts-content');
+            const promptsToggle = document.getElementById('prompts-toggle');
+            promptsContent.classList.toggle('collapsed');
+            promptsToggle.classList.toggle('collapsed');
+        }
+
+        function runPrompt(text) {
+            const chatInput = document.getElementById('chat-input');
+            chatInput.value = text;
+            sendChatMessage();
         }
 
         function showError(message) {
@@ -1243,8 +1282,67 @@ Keep durations realistic (in seconds). Common conversions:
 - 5 minutes = 300 seconds
 - 30 minutes = 1800 seconds
 - 1 hour = 3600 seconds
-- 2 hours = 7200 seconds"""
+- 2 hours = 7200 seconds
 
+## Importing from External Sources
+
+IMPORTANT: When a user asks about cooking, recipes, meals, or food preparation, you MUST use the import_from_source tool with source="themealdb" to fetch real recipes. Do NOT make up recipes - always import them from TheMealDB.
+
+### TheMealDB (Recipes) - USE THIS FOR ALL RECIPE REQUESTS
+TheMealDB is a free recipe database. When users ask for ANY recipe or cooking schedule:
+1. ALWAYS use import_from_source with source="themealdb" and action="search" first
+2. Tell the user: "I'm searching TheMealDB for [dish name]..."
+3. Then use action="import" with the recipe ID to get the full recipe
+4. Tell the user: "I found [recipe name] on TheMealDB! Here's the cooking schedule..."
+
+Example user requests that REQUIRE using TheMealDB:
+- "Make me a schedule for cooking lasagna" → Search TheMealDB for lasagna
+- "I want to cook chicken tikka masala" → Search TheMealDB for chicken tikka masala
+- "Help me prepare beef stew" → Search TheMealDB for beef stew
+- "Get a random meal" → Use action="random" on TheMealDB
+- Any mention of cooking, recipes, meals, or food → Use TheMealDB
+
+### Protocols.io (Laboratory Protocols)
+For laboratory protocols (requires API token). Use when users mention:
+- Lab protocols, experiments, scientific procedures
+- protocols.io URLs
+
+### Workflow for Recipe Requests:
+1. Tell user: "I'm searching TheMealDB for [dish]..."
+2. Call import_from_source with action="search"
+3. Tell user: "Found [recipe name]! Importing from TheMealDB..."
+4. Call import_from_source with action="import" and the recipe ID
+5. Tell user: "Here's the cooking schedule imported from TheMealDB:"
+6. Call visualize_program to display the schedule
+
+ALWAYS be explicit that you are using TheMealDB as the source."""
+
+
+# Tool definition for importing from external sources
+IMPORT_TOOL = {
+    "name": "import_from_source",
+    "description": "Import a program from external sources like TheMealDB (recipes) or protocols.io (lab protocols). Use 'search' action to find items, or 'import' action to import a specific URL/ID.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "source": {
+                "type": "string",
+                "enum": ["themealdb", "protocolsio"],
+                "description": "The source to import from"
+            },
+            "action": {
+                "type": "string",
+                "enum": ["search", "import", "random"],
+                "description": "Action to perform: 'search' to find items, 'import' to import a specific item, 'random' for a random item (themealdb only)"
+            },
+            "query": {
+                "type": "string",
+                "description": "Search query (for search action) or URL/ID (for import action)"
+            }
+        },
+        "required": ["source", "action"]
+    }
+}
 
 # Tool definition for visualizing programs
 VISUALIZE_TOOL = {
@@ -1275,6 +1373,47 @@ VISUALIZE_TOOL = {
 }
 
 
+def handle_import_tool(source: str, action: str, query: str = None):
+    """Handle the import_from_source tool call."""
+    if not IMPORTERS_AVAILABLE:
+        return {"error": "Importers not available. Install rhylthyme-importers."}
+
+    try:
+        importer = ImporterRegistry.get(source)
+        if not importer:
+            return {"error": f"Unknown source: {source}"}
+
+        if action == "search":
+            if not query:
+                return {"error": "Search query required"}
+            results = importer.search(query)
+            return {"results": results[:10]}  # Limit to 10 results
+
+        elif action == "random":
+            if source == "themealdb":
+                meal = importer.get_random_meal()
+                if meal:
+                    result = importer.import_from_url(meal.get("idMeal"))
+                    if result.success:
+                        return {"program": result.program}
+                    return {"error": result.error}
+                return {"error": "Failed to get random meal"}
+            return {"error": "Random not supported for this source"}
+
+        elif action == "import":
+            if not query:
+                return {"error": "URL or ID required for import"}
+            result = importer.import_from_url(query)
+            if result.success:
+                return {"program": result.program}
+            return {"error": result.error}
+
+        return {"error": f"Unknown action: {action}"}
+
+    except Exception as e:
+        return {"error": str(e)}
+
+
 @app.route('/api/chat', methods=['POST'])
 def api_chat():
     if not ANTHROPIC_AVAILABLE:
@@ -1300,33 +1439,166 @@ def api_chat():
             messages.append({"role": h.get("role", "user"), "content": h.get("content", "")})
         messages.append({"role": "user", "content": message})
 
-        # Call Claude with tool use enabled
-        response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=4096,
-            system=SYSTEM_PROMPT,
-            tools=[VISUALIZE_TOOL],
-            messages=messages
-        )
+        # Build tools list - include import tool only if available
+        tools = [VISUALIZE_TOOL]
+        if IMPORTERS_AVAILABLE:
+            tools.append(IMPORT_TOOL)
 
-        # Process response - check for tool use
+        # Tool-use loop: keep calling Claude until we get a final response
         program = None
         text_response = ""
+        import_result = None
+        max_iterations = 5
 
-        for block in response.content:
-            if block.type == "text":
-                text_response += block.text
-            elif block.type == "tool_use" and block.name == "visualize_program":
-                # Claude called the visualize tool - extract the program
-                program = block.input.get("program")
+        for _ in range(max_iterations):
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=4096,
+                system=SYSTEM_PROMPT,
+                tools=tools,
+                messages=messages
+            )
+
+            # Collect text and tool_use blocks from this response
+            tool_uses = []
+            for block in response.content:
+                if block.type == "text":
+                    text_response += block.text
+                elif block.type == "tool_use":
+                    tool_uses.append(block)
+
+            # If no tool calls, we're done
+            if not tool_uses:
+                break
+
+            # Process each tool call and build tool results
+            tool_results = []
+            for tool_use in tool_uses:
+                if tool_use.name == "visualize_program":
+                    program = tool_use.input.get("program")
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": tool_use.id,
+                        "content": json.dumps({"status": "success", "message": "Program ready for visualization"})
+                    })
+                elif tool_use.name == "import_from_source":
+                    result = handle_import_tool(
+                        source=tool_use.input.get("source"),
+                        action=tool_use.input.get("action"),
+                        query=tool_use.input.get("query")
+                    )
+                    import_result = result
+                    if result.get("program"):
+                        program = result["program"]
+                    tool_results.append({
+                        "type": "tool_result",
+                        "tool_use_id": tool_use.id,
+                        "content": json.dumps(result if not result.get("program") else {"status": "success", "program_name": result["program"].get("name", "Imported program"), "track_count": len(result["program"].get("tracks", []))})
+                    })
+
+            # Append assistant response and tool results to continue the loop
+            messages.append({"role": "assistant", "content": [b.model_dump() for b in response.content]})
+            messages.append({"role": "user", "content": tool_results})
+
+            # If we already have a program from visualize_program, no need to loop
+            if program and any(t.name == "visualize_program" for t in tool_uses):
+                break
 
         return jsonify({
             'response': text_response,
-            'program': program
+            'program': program,
+            'import_result': import_result
         })
 
     except Exception as e:
         return jsonify({'error': f'Chat error: {str(e)}'}), 500
+
+
+# Importer API endpoints
+@app.route('/api/importers', methods=['GET'])
+def api_list_importers():
+    """List available importers."""
+    if not IMPORTERS_AVAILABLE:
+        return jsonify({'error': 'Importers not available. Install rhylthyme-importers.'}), 500
+
+    importers = ImporterRegistry.list_importers()
+    return jsonify({'importers': importers})
+
+
+@app.route('/api/import/search', methods=['POST'])
+def api_import_search():
+    """Search for importable items."""
+    if not IMPORTERS_AVAILABLE:
+        return jsonify({'error': 'Importers not available. Install rhylthyme-importers.'}), 500
+
+    data = request.get_json()
+    source = data.get('source', '') if data else ''
+    query = data.get('query', '') if data else ''
+
+    if not source or not query:
+        return jsonify({'error': 'Source and query required'}), 400
+
+    importer = ImporterRegistry.get(source)
+    if not importer:
+        return jsonify({'error': f'Unknown source: {source}'}), 400
+
+    try:
+        results = importer.search(query)
+        return jsonify({'results': results})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/import', methods=['POST'])
+def api_import():
+    """Import a program from external source."""
+    if not IMPORTERS_AVAILABLE:
+        return jsonify({'error': 'Importers not available. Install rhylthyme-importers.'}), 500
+
+    data = request.get_json()
+    source = data.get('source', '') if data else ''
+    url = data.get('url', '') if data else ''
+
+    if not source or not url:
+        return jsonify({'error': 'Source and URL required'}), 400
+
+    importer = ImporterRegistry.get(source)
+    if not importer:
+        return jsonify({'error': f'Unknown source: {source}'}), 400
+
+    try:
+        result = importer.import_from_url(url)
+        if result.success:
+            return jsonify({'program': result.program})
+        return jsonify({'error': result.error}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/import/random', methods=['POST'])
+def api_import_random():
+    """Import a random item (TheMealDB only)."""
+    if not IMPORTERS_AVAILABLE:
+        return jsonify({'error': 'Importers not available. Install rhylthyme-importers.'}), 500
+
+    data = request.get_json()
+    source = data.get('source', 'themealdb') if data else 'themealdb'
+
+    if source != 'themealdb':
+        return jsonify({'error': 'Random import only supported for themealdb'}), 400
+
+    try:
+        importer = TheMealDBImporter()
+        meal = importer.get_random_meal()
+        if not meal:
+            return jsonify({'error': 'Failed to get random meal'}), 500
+
+        result = importer.import_from_url(meal.get('idMeal'))
+        if result.success:
+            return jsonify({'program': result.program})
+        return jsonify({'error': result.error}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/api/visualize', methods=['POST'])
