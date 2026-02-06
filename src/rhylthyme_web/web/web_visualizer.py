@@ -262,15 +262,31 @@ def calculate_timeline_data(nodes: List[Dict], edges: List[Dict]) -> Dict:
             max_predecessor_end = step_offsets[step_id]
         
         # Handle dependencies
+        # Account for this step's pre-buffer so it doesn't overlap with predecessor
+        own_buffers = step_buffers.get(step_id, {})
+        own_pre_buffer = own_buffers.get('preBuffer', {})
+        own_pre_duration = parse_duration_string(own_pre_buffer.get('duration', ''))
+
         for predecessor in step_dependencies.get(step_id, []):
             pred_start = calculate_start_time(predecessor)
             pred_duration = step_durations.get(predecessor, 0)
             pred_end = pred_start + pred_duration
-            
-            # Add buffer if exists
+
+            # Add predecessor's post-buffer so next step doesn't overlap
+            pred_buffers = step_buffers.get(predecessor, {})
+            pred_post_buffer = pred_buffers.get('postBuffer', {})
+            pred_post_duration = parse_duration_string(pred_post_buffer.get('duration', ''))
+            if pred_post_duration > 0:
+                pred_end += pred_post_duration
+
+            # Add afterStepWithBuffer delay if exists
             buffer = step_buffers.get((predecessor, step_id), 0)
             pred_end += buffer
-            
+
+            # Ensure this step's pre-buffer doesn't overlap with predecessor
+            if own_pre_duration > 0:
+                pred_end += own_pre_duration
+
             max_predecessor_end = max(max_predecessor_end, pred_end)
         
         step_start_times[step_id] = max_predecessor_end
@@ -375,11 +391,19 @@ def calculate_timeline_data(nodes: List[Dict], edges: List[Dict]) -> Dict:
                     step['postBuffer']['endTime'] += time_offset
     
     total_duration = max_end_time + time_offset
-    
+
+    # Check if any buffers exist in the program
+    has_buffers = any(
+        'preBuffer' in step or 'postBuffer' in step
+        for track_data in tracks.values()
+        for step in track_data['steps']
+    )
+
     return {
         'tracks': list(tracks.values()),
         'totalDuration': total_duration,
-        'timeScale': 'seconds'
+        'timeScale': 'seconds',
+        'hasBuffers': has_buffers
     }
 
 def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[str, Any], environment_data: Dict[str, Any] = None, resource_constraints: List[Dict[str, Any]] = None) -> str:
@@ -1110,11 +1134,11 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
             
             <div class="flex-1 min-w-0" id="dag-panel">
                 <div class="flex items-center justify-center gap-3 mb-3 p-3 bg-gray-50 rounded border border-gray-200 h-20">
-                    <div class="flex flex-col items-center gap-1">
-                        <button class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-1.5 px-3 rounded text-sm transition-colors" id="dag-zoom-in">➕</button>
-                        <button class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-1.5 px-3 rounded text-sm transition-colors" id="dag-zoom-out">➖</button>
-                    </div>
-                    <div class="text-xs text-gray-600 font-bold min-w-24 text-center" id="dag-zoom-info">🔍 Zoom: 1.0x</div>
+                    <span class="text-xs text-gray-500">−</span>
+                    <input type="range" id="dag-zoom-slider" min="0" max="100" value="50" step="1"
+                        style="width: 120px; accent-color: #6B9E7D; cursor: pointer;">
+                    <span class="text-xs text-gray-500">+</span>
+                    <div class="text-xs text-gray-600 font-bold min-w-24 text-center" id="dag-zoom-info">Zoom: 1.0x</div>
                     <button class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-1.5 px-3 rounded text-xs transition-colors" id="dag-zoom-reset">Reset View</button>
                 </div>
                 <div class="w-full h-96 border border-gray-300 rounded overflow-hidden">
@@ -1125,11 +1149,19 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
             <div class="flex-1 min-w-0" id="timeline-panel">
                 <div class="flex items-center justify-between gap-4 mb-3 p-3 bg-gray-50 rounded border border-gray-200 h-20">
                     <div class="flex items-center gap-2">
-                        <div class="flex flex-col items-center gap-1">
-                            <button class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-1.5 px-3 rounded text-xs transition-colors" id="zoom-in">➕</button>
-                            <button class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-1.5 px-3 rounded text-xs transition-colors" id="zoom-out">➖</button>
-                        </div>
-                        <div class="text-xs text-gray-600 font-bold min-w-20 text-center" id="scale-info">🔍 Scale: 1.0x</div>
+                        <span class="text-xs text-gray-500">−</span>
+                        <input type="range" id="zoom-slider" min="0" max="100" value="50" step="1"
+                            style="width: 120px; accent-color: #6B9E7D; cursor: pointer;">
+                        <span class="text-xs text-gray-500">+</span>
+                        <div class="text-xs text-gray-600 font-bold min-w-20 text-center" id="scale-info">Scale: 1.0x</div>
+                    </div>
+                    <div class="flex items-center gap-2" id="buffer-scale-container" style="display: none;">
+                        <span class="text-xs text-gray-400">|</span>
+                        <span class="text-xs text-gray-500" title="Buffer time scale for slower/faster workers">🐢</span>
+                        <input type="range" id="buffer-scale-slider" min="0" max="100" value="50" step="1"
+                            style="width: 100px; accent-color: #D97706; cursor: pointer;">
+                        <span class="text-xs text-gray-500">🐇</span>
+                        <div class="text-xs text-amber-600 font-bold min-w-24 text-center" id="buffer-scale-info">Buffers: 1.0x</div>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap" id="preset-buttons-container" style="display: none;">
                         {preset_buttons_html}
@@ -2379,38 +2411,40 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
         }
         
         // DAG zoom control functions
+        const dagZoomSlider = document.getElementById('dag-zoom-slider');
+
+        function dagSliderToScale(val) {
+            const logMin = Math.log(minDagZoom);
+            const logMax = Math.log(maxDagZoom);
+            return Math.exp(logMin + (val / 100) * (logMax - logMin));
+        }
+        function dagScaleToSlider(s) {
+            const logMin = Math.log(minDagZoom);
+            const logMax = Math.log(maxDagZoom);
+            return ((Math.log(s) - logMin) / (logMax - logMin)) * 100;
+        }
+
+        dagZoomSlider.value = dagScaleToSlider(1.0);
+
         function updateDagZoomInfo() {
             document.getElementById('dag-zoom-info').textContent = 'Zoom: ' + currentDagZoom.toFixed(1) + 'x';
-            
-            // Update button states
-            document.getElementById('dag-zoom-out').disabled = currentDagZoom <= minDagZoom + 0.05;
-            document.getElementById('dag-zoom-in').disabled = currentDagZoom >= maxDagZoom - 0.05;
+            dagZoomSlider.value = dagScaleToSlider(currentDagZoom);
         }
-        
-        function zoomDagIn() {
-            svg.transition().duration(300).call(
-                zoom.scaleBy, 1.5
-            );
-        }
-        
-        function zoomDagOut() {
-            svg.transition().duration(300).call(
-                zoom.scaleBy, 1 / 1.5
-            );
-        }
-        
+
+        dagZoomSlider.addEventListener('input', function() {
+            const newScale = dagSliderToScale(parseFloat(this.value));
+            svg.call(zoom.scaleTo, newScale);
+        });
+
         function resetDagView() {
             svg.transition().duration(500).call(
                 zoom.transform,
                 d3.zoomIdentity.translate(0, 0).scale(1)
             );
         }
-        
-        // Add event listeners for DAG zoom controls
-        document.getElementById('dag-zoom-in').addEventListener('click', zoomDagIn);
-        document.getElementById('dag-zoom-out').addEventListener('click', zoomDagOut);
+
         document.getElementById('dag-zoom-reset').addEventListener('click', resetDagView);
-        
+
         // Initialize zoom info
         updateDagZoomInfo();
         
@@ -2937,7 +2971,7 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
             currentScale = scale;
             
             // Skip update if scale is too small for performance reasons
-            if (scale < 0.005) {
+            if (scale < 0.05) {
                 console.warn('Scale too small, skipping timeline update for performance');
                 return;
             }
@@ -3138,34 +3172,34 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
                     hideTooltip();
                 });
             
-            // Create task labels (only for longer tasks and higher scales)
-            const showLabels = scale >= 1.0;
-            if (showLabels) {
-                taskBars.selectAll(".task-label")
-                    .data(d => d.steps.filter(s => s.duration > 30 / scale)) // Adaptive label threshold
-                    .enter().append("text")
-                    .attr("class", "task-label")
-                    .attr("x", d => timeScale(d.startTime) + timeScale(d.duration) / 2)
-                    .attr("y", d => {
-                        const track = timelineTracks.find(t => t.steps.includes(d));
-                        return trackScale(track.trackId) + trackHeight / 2;
-                    })
-                    .text(d => {
-                        // Calculate available width for text based on step duration
-                        const availableWidth = timeScale(d.duration) - 8; // 8px padding
-                        const avgCharWidth = 7; // Approximate character width in pixels
-                        const maxChars = Math.floor(availableWidth / avgCharWidth);
-                        
-                        // Only truncate if necessary and if the step is reasonably wide
-                        if (maxChars > 10 && d.name.length > maxChars) {
-                            return d.name.substring(0, maxChars - 3) + '...';
-                        } else if (maxChars <= 10 && d.name.length > 10) {
-                            // For very narrow steps, use a minimal truncation
-                            return d.name.substring(0, Math.max(3, maxChars - 3)) + '...';
-                        }
-                        return d.name;
-                    });
-            }
+            // Create task labels - always show, with adaptive sizing
+            const labelFontSize = scale >= 1.0 ? 10 : Math.max(7, 10 * scale);
+            const avgCharWidth = scale >= 1.0 ? 7 : Math.max(4.5, 7 * scale);
+            const minBarWidthForLabel = 20; // pixels
+            taskBars.selectAll(".task-label")
+                .data(d => d.steps.filter(s => timeScale(s.duration) > minBarWidthForLabel))
+                .enter().append("text")
+                .attr("class", "task-label")
+                .attr("x", d => timeScale(d.startTime) + timeScale(d.duration) / 2)
+                .attr("y", d => {
+                    const track = timelineTracks.find(t => t.steps.includes(d));
+                    return trackScale(track.trackId) + trackHeight / 2;
+                })
+                .style("font-size", labelFontSize + "px")
+                .text(d => {
+                    // Calculate available width for text based on step duration
+                    const availableWidth = timeScale(d.duration) - 8; // 8px padding
+                    const maxChars = Math.floor(availableWidth / avgCharWidth);
+
+                    // Only truncate if necessary and if the step is reasonably wide
+                    if (maxChars > 10 && d.name.length > maxChars) {
+                        return d.name.substring(0, maxChars - 3) + '...';
+                    } else if (maxChars <= 10 && d.name.length > 10) {
+                        // For very narrow steps, use a minimal truncation
+                        return d.name.substring(0, Math.max(3, maxChars - 3)) + '...';
+                    }
+                    return d.name;
+                });
             
             // Add flex icons for flexible steps
             const showFlexIcons = scale >= 0.5;
@@ -3216,7 +3250,7 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
                         const track = timelineTracks.find(t => t.steps.includes(d));
                         return trackScale(track.trackId) + 5;
                     })
-                    .attr("width", d => Math.max(1, timeScale(d.preBuffer.duration)))
+                    .attr("width", d => Math.max(4, timeScale(d.preBuffer.duration)))
                     .attr("height", trackHeight - 10)
                     .attr("rx", 4)
                     .attr("ry", 4)
@@ -3249,7 +3283,7 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
                         const track = timelineTracks.find(t => t.steps.includes(d));
                         return trackScale(track.trackId) + 5;
                     })
-                    .attr("width", d => Math.max(1, timeScale(d.postBuffer.duration)))
+                    .attr("width", d => Math.max(4, timeScale(d.postBuffer.duration)))
                     .attr("height", trackHeight - 10)
                     .attr("rx", 4)
                     .attr("ry", 4)
@@ -3602,57 +3636,318 @@ def generate_dag_html(nodes: List[Dict], edges: List[Dict], program_data: Dict[s
         }
         
         // Timeline zoom control functions
-        const minScale = 0.01;
+        const minScale = 0.1;
         const maxScale = 20.0;
-        
+        const zoomSlider = document.getElementById('zoom-slider');
+
+        // Logarithmic mapping: slider 0-100 → scale minScale-maxScale
+        // slider=50 → scale=1.0
+        function sliderToScale(val) {
+            const logMin = Math.log(minScale);
+            const logMax = Math.log(maxScale);
+            return Math.exp(logMin + (val / 100) * (logMax - logMin));
+        }
+        function scaleToSlider(s) {
+            const logMin = Math.log(minScale);
+            const logMax = Math.log(maxScale);
+            return ((Math.log(s) - logMin) / (logMax - logMin)) * 100;
+        }
+
+        // Initialize slider to match currentScale=1.0
+        zoomSlider.value = scaleToSlider(1.0);
+
         function updateScaleInfo() {
-            document.getElementById('scale-info').textContent = 'Scale: ' + currentScale.toFixed(1) + 'x';
-            
-            // Update button states
-            document.getElementById('zoom-out').disabled = currentScale <= minScale + 0.05;
-            document.getElementById('zoom-in').disabled = currentScale >= maxScale - 0.05;
+            const decimals = currentScale < 1 ? 2 : 1;
+            document.getElementById('scale-info').textContent = 'Scale: ' + currentScale.toFixed(decimals) + 'x';
         }
-        
-        function zoomTimelineIn() {
-            if (currentScale < maxScale) {
-                currentScale = Math.min(maxScale, currentScale * 1.5);
-                updateTimeline(currentScale);
-                updateScaleInfo();
-            }
-        }
-        
-        function zoomTimelineOut() {
-            if (currentScale > minScale) {
-                currentScale = Math.max(minScale, currentScale / 1.5);
-                updateTimeline(currentScale);
-                updateScaleInfo();
-            }
-        }
-        
+
+        zoomSlider.addEventListener('input', function() {
+            currentScale = sliderToScale(parseFloat(this.value));
+            updateTimeline(currentScale);
+            updateScaleInfo();
+        });
+
         function setTimelinePreset(minutes) {
             // Calculate scale needed to fit the specified time range in the viewport
             const targetDuration = minutes * 60; // Convert to seconds
-            const viewportWidth = timelineWidth - margin.left - margin.right - 100; // Account for margins and scroll
+            const viewportWidth = timelineWidth - margin.left - margin.right - 100;
             const pixelsPerSecond = viewportWidth / targetDuration;
-            
+
             // Calculate scale relative to base pixels per second
             const newScale = pixelsPerSecond / basePixelsPerSecond;
             currentScale = Math.max(minScale, Math.min(maxScale, newScale));
-            
+            zoomSlider.value = scaleToSlider(currentScale);
+
             updateTimeline(currentScale);
             updateScaleInfo();
         }
-        
-        // Add event listeners for timeline zoom controls
-        document.getElementById('zoom-in').addEventListener('click', zoomTimelineIn);
-        document.getElementById('zoom-out').addEventListener('click', zoomTimelineOut);
         
         // Note: Preset buttons are now dynamically generated and managed by settings
         // Event listeners are added in generateCustomPresets() function
         
         // Initialize scale info
         updateScaleInfo();
-        
+
+        // Buffer scale slider - proportionally expand/shrink buffer times
+        // Recalculates the full schedule to prevent overlaps
+        const bufferScaleSlider = document.getElementById('buffer-scale-slider');
+        const bufferScaleContainer = document.getElementById('buffer-scale-container');
+        let currentBufferScale = 1.0;
+        let hasAnyBuffers = timelineData.hasBuffers || false;
+
+        // Build scheduling data from nodes/edges (mirrors Python calculate_timeline_data)
+        const scheduleData = {
+            stepDurations: {},      // stepId -> duration in seconds
+            stepDependencies: {},   // stepId -> [predecessor stepIds]
+            stepOffsets: {},        // stepId -> programStartOffset seconds
+            edgeBuffers: {},        // "source|target" -> buffer seconds
+            originalPreBuffers: {}, // stepId -> {duration, description, tasks}
+            originalPostBuffers: {},// stepId -> {duration, description, tasks}
+            stepTrack: {},          // stepId -> {trackIndex, stepIndex, trackId}
+            stepOrder: []           // topological order of step IDs
+        };
+
+        // Parse duration string (mirrors Python parse_duration_string)
+        function jsParseDuration(durStr) {
+            if (!durStr) return 0;
+            if (typeof durStr === 'number') return durStr;
+            durStr = String(durStr).trim().toLowerCase();
+            if (durStr.endsWith(')')) durStr = durStr.slice(0, -1);
+            if (durStr.endsWith('s')) return parseInt(durStr.slice(0, -1)) || 0;
+            if (durStr.endsWith('m')) return (parseInt(durStr.slice(0, -1)) || 0) * 60;
+            if (durStr.endsWith('h')) return (parseInt(durStr.slice(0, -1)) || 0) * 3600;
+            const match = durStr.match(/\d+/);
+            return match ? parseInt(match[0]) : 0;
+        }
+
+        // Extract scheduling metadata from nodes and edges
+        nodes.forEach(n => {
+            if (n.type !== 'step') return;
+            // Parse duration
+            let dur = 0;
+            if (n.duration) {
+                if (n.duration.includes('default:')) {
+                    dur = jsParseDuration(n.duration.split('default:')[1]);
+                } else {
+                    dur = jsParseDuration(n.duration);
+                }
+            }
+            scheduleData.stepDurations[n.id] = dur;
+            // Store original buffer durations
+            if (n.preBuffer && n.preBuffer.duration) {
+                scheduleData.originalPreBuffers[n.id] = {
+                    duration: jsParseDuration(n.preBuffer.duration),
+                    description: n.preBuffer.description || '',
+                    tasks: n.preBuffer.tasks || []
+                };
+            }
+            if (n.postBuffer && n.postBuffer.duration) {
+                scheduleData.originalPostBuffers[n.id] = {
+                    duration: jsParseDuration(n.postBuffer.duration),
+                    description: n.postBuffer.description || '',
+                    tasks: n.postBuffer.tasks || []
+                };
+            }
+        });
+
+        // Build dependency graph from edges
+        // Note: D3 force simulation mutates edges so source/target may be objects
+        edges.forEach(e => {
+            const sourceId = typeof e.source === 'object' ? e.source.id : e.source;
+            const targetId = typeof e.target === 'object' ? e.target.id : e.target;
+            if (!scheduleData.stepDependencies[targetId]) {
+                scheduleData.stepDependencies[targetId] = [];
+            }
+            if (e.type === 'programStartOffset') {
+                scheduleData.stepOffsets[targetId] = e.offset || 0;
+            } else if (e.type === 'afterStepWithBuffer') {
+                scheduleData.edgeBuffers[sourceId + '|' + targetId] = e.buffer || 0;
+            }
+            if (sourceId !== 'program_start') {
+                scheduleData.stepDependencies[targetId].push(sourceId);
+            }
+        });
+
+        // Map step IDs to their location in timelineData.tracks
+        (timelineData.tracks || []).forEach((track, ti) => {
+            track.steps.forEach((step, si) => {
+                scheduleData.stepTrack[step.stepId] = { trackIndex: ti, stepIndex: si, trackId: track.trackId };
+            });
+        });
+
+        // Determine topological order (from the existing timeline, sorted by startTime)
+        const allSteps = [];
+        (timelineData.tracks || []).forEach(track => {
+            track.steps.forEach(step => {
+                allSteps.push({ stepId: step.stepId, startTime: step.startTime });
+            });
+        });
+        allSteps.sort((a, b) => a.startTime - b.startTime);
+        scheduleData.stepOrder = allSteps.map(s => s.stepId);
+
+        if (hasAnyBuffers) {
+            bufferScaleContainer.style.display = 'flex';
+        }
+
+        // Buffer scale: slider 0-100, logarithmic mapping
+        const bufferMinScale = 0.25;
+        const bufferMaxScale = 4.0;
+
+        function bufferSliderToScale(val) {
+            const logMin = Math.log(bufferMinScale);
+            const logMax = Math.log(bufferMaxScale);
+            return Math.exp(logMin + (val / 100) * (logMax - logMin));
+        }
+        function bufferScaleToSlider(s) {
+            const logMin = Math.log(bufferMinScale);
+            const logMax = Math.log(bufferMaxScale);
+            return ((Math.log(s) - logMin) / (logMax - logMin)) * 100;
+        }
+
+        bufferScaleSlider.value = bufferScaleToSlider(1.0);
+
+        function updateBufferScaleInfo() {
+            const decimals = currentBufferScale < 1 ? 2 : 1;
+            document.getElementById('buffer-scale-info').textContent = 'Buffers: ' + currentBufferScale.toFixed(decimals) + 'x';
+        }
+
+        // Full reschedule: recalculate all step start times with scaled buffers
+        function applyBufferScale(scale) {
+            currentBufferScale = scale;
+
+            // Calculate scaled buffer durations for each step
+            const scaledPreBuffers = {};
+            const scaledPostBuffers = {};
+            for (const [stepId, buf] of Object.entries(scheduleData.originalPreBuffers)) {
+                scaledPreBuffers[stepId] = buf.duration * scale;
+            }
+            for (const [stepId, buf] of Object.entries(scheduleData.originalPostBuffers)) {
+                scaledPostBuffers[stepId] = buf.duration * scale;
+            }
+
+            // Topological scheduling (mirrors Python calculate_start_time)
+            const stepStartTimes = {};
+
+            function calcStartTime(stepId) {
+                if (stepId in stepStartTimes) return stepStartTimes[stepId];
+
+                let maxPredEnd = 0;
+
+                // Handle programStartOffset
+                if (stepId in scheduleData.stepOffsets) {
+                    maxPredEnd = scheduleData.stepOffsets[stepId];
+                }
+
+                // This step's scaled pre-buffer duration
+                const ownPreDur = scaledPreBuffers[stepId] || 0;
+
+                // Handle dependencies
+                const preds = scheduleData.stepDependencies[stepId] || [];
+                preds.forEach(predId => {
+                    const predStart = calcStartTime(predId);
+                    const predDur = scheduleData.stepDurations[predId] || 0;
+                    let predEnd = predStart + predDur;
+
+                    // Add predecessor's scaled post-buffer
+                    predEnd += (scaledPostBuffers[predId] || 0);
+
+                    // Add afterStepWithBuffer edge delay
+                    const edgeKey = predId + '|' + stepId;
+                    predEnd += (scheduleData.edgeBuffers[edgeKey] || 0);
+
+                    // Add own pre-buffer so it doesn't overlap
+                    predEnd += ownPreDur;
+
+                    maxPredEnd = Math.max(maxPredEnd, predEnd);
+                });
+
+                stepStartTimes[stepId] = maxPredEnd;
+                return maxPredEnd;
+            }
+
+            // Calculate in topological order
+            scheduleData.stepOrder.forEach(stepId => calcStartTime(stepId));
+
+            // Update timelineData with new start times and buffer positions
+            let maxEndTime = 0;
+            let minStartTime = 0;
+
+            for (const [stepId, loc] of Object.entries(scheduleData.stepTrack)) {
+                const track = timelineData.tracks[loc.trackIndex];
+                const step = track.steps[loc.stepIndex];
+                const newStart = stepStartTimes[stepId] || 0;
+                const dur = step.duration;
+
+                step.startTime = newStart;
+                step.endTime = newStart + dur;
+
+                // Update pre-buffer
+                const origPre = scheduleData.originalPreBuffers[stepId];
+                if (origPre) {
+                    const scaledDur = origPre.duration * scale;
+                    step.preBuffer = {
+                        startTime: newStart - scaledDur,
+                        duration: scaledDur,
+                        endTime: newStart,
+                        description: origPre.description,
+                        tasks: origPre.tasks
+                    };
+                    minStartTime = Math.min(minStartTime, step.preBuffer.startTime);
+                } else {
+                    delete step.preBuffer;
+                }
+
+                // Update post-buffer
+                const origPost = scheduleData.originalPostBuffers[stepId];
+                if (origPost) {
+                    const scaledDur = origPost.duration * scale;
+                    step.postBuffer = {
+                        startTime: newStart + dur,
+                        duration: scaledDur,
+                        endTime: newStart + dur + scaledDur,
+                        description: origPost.description,
+                        tasks: origPost.tasks
+                    };
+                    maxEndTime = Math.max(maxEndTime, step.postBuffer.endTime);
+                } else {
+                    delete step.postBuffer;
+                }
+
+                maxEndTime = Math.max(maxEndTime, step.endTime);
+            }
+
+            // Adjust times if any pre-buffer extends before 0
+            if (minStartTime < 0) {
+                const offset = -minStartTime;
+                for (const [stepId, loc] of Object.entries(scheduleData.stepTrack)) {
+                    const step = timelineData.tracks[loc.trackIndex].steps[loc.stepIndex];
+                    step.startTime += offset;
+                    step.endTime += offset;
+                    if (step.preBuffer) {
+                        step.preBuffer.startTime += offset;
+                        step.preBuffer.endTime += offset;
+                    }
+                    if (step.postBuffer) {
+                        step.postBuffer.startTime += offset;
+                        step.postBuffer.endTime += offset;
+                    }
+                }
+                maxEndTime += offset;
+            }
+
+            timelineData.totalDuration = maxEndTime;
+
+            updateTimeline(currentScale);
+            updateBufferScaleInfo();
+        }
+
+        bufferScaleSlider.addEventListener('input', function() {
+            const newScale = bufferSliderToScale(parseFloat(this.value));
+            applyBufferScale(newScale);
+        });
+
+        updateBufferScaleInfo();
+
         // Initialize time format controls
         initializeTimeFormatControls();
         

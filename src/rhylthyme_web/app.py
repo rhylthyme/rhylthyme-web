@@ -20,7 +20,7 @@ except ImportError:
     ANTHROPIC_AVAILABLE = False
 
 try:
-    from rhylthyme_importers import ImporterRegistry, TheMealDBImporter, ProtocolsIOImporter
+    from rhylthyme_importers import ImporterRegistry, TheMealDBImporter, ProtocolsIOImporter, SpoonacularImporter
     IMPORTERS_AVAILABLE = True
 except ImportError:
     IMPORTERS_AVAILABLE = False
@@ -395,9 +395,187 @@ MAIN_PAGE = '''
             padding: 4px 8px;
             border-radius: 4px;
         }
+
+        /* Mobile toolbar - hidden on desktop */
+        .mobile-toolbar {
+            display: none;
+        }
+
+        /* Mobile overlay backdrop */
+        .mobile-overlay {
+            display: none;
+        }
+
+        /* ===== Mobile styles ===== */
+        @media (max-width: 768px) {
+            .mobile-toolbar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 8px 12px;
+                background: white;
+                border-bottom: 1px solid #e5e7eb;
+                z-index: 200;
+                flex-shrink: 0;
+            }
+
+            .mobile-toolbar h1 {
+                font-size: 16px;
+                font-weight: 700;
+                color: #1f2937;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                margin: 0;
+            }
+
+            .mobile-toolbar-actions {
+                display: flex;
+                gap: 8px;
+            }
+
+            .mobile-toolbar-btn {
+                width: 36px;
+                height: 36px;
+                border: 1px solid #d1d5db;
+                border-radius: 8px;
+                background: white;
+                color: #374151;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 16px;
+            }
+
+            .mobile-toolbar-btn:active {
+                background: #f3f4f6;
+            }
+
+            .mobile-overlay {
+                display: none;
+                position: fixed;
+                inset: 0;
+                background: rgba(0,0,0,0.4);
+                z-index: 299;
+            }
+
+            .mobile-overlay.active {
+                display: block;
+            }
+
+            /* Main flex container becomes column */
+            body > .flex {
+                flex-direction: column;
+            }
+
+            /* Sidebar: full-screen overlay drawer on mobile */
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 85vw !important;
+                min-width: 0 !important;
+                max-width: 340px;
+                height: 100vh;
+                z-index: 300;
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .sidebar.collapsed {
+                width: 85vw !important;
+                transform: translateX(-100%);
+                overflow: visible;
+            }
+
+            /* Chat panel: full-screen overlay drawer on mobile */
+            .chat-panel {
+                position: fixed;
+                top: 0;
+                right: 0;
+                width: 100vw !important;
+                min-width: 0 !important;
+                max-width: 100vw;
+                height: 100vh;
+                z-index: 300;
+                transform: translateX(100%);
+                transition: transform 0.3s ease;
+            }
+
+            .chat-panel.mobile-open {
+                transform: translateX(0);
+            }
+
+            .chat-panel.collapsed {
+                width: 100vw !important;
+                transform: translateX(100%);
+                overflow: visible;
+            }
+
+            /* Hide desktop toggle tabs on mobile */
+            .sidebar-toggle {
+                display: none !important;
+            }
+
+            .chat-toggle {
+                display: none !important;
+            }
+
+            /* Main content fills the screen */
+            .main-content {
+                flex: 1;
+                min-height: 0;
+            }
+
+            /* Download button repositioned for mobile */
+            #download-btn {
+                top: 8px !important;
+                right: 8px !important;
+                font-size: 12px;
+                padding: 6px 10px !important;
+            }
+
+            /* Welcome screen adjustments */
+            .welcome-screen {
+                padding: 20px;
+            }
+
+            .welcome-screen i {
+                font-size: 40px;
+            }
+
+            .welcome-screen h2 {
+                font-size: 18px;
+            }
+
+            /* Sidebar header: hide desktop collapse button, show close */
+            #sidebar-toggle-btn {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body class="bg-gray-100 h-screen overflow-hidden">
+    <!-- Mobile toolbar -->
+    <div class="mobile-toolbar">
+        <button class="mobile-toolbar-btn" onclick="mobileToggleSidebar()" aria-label="Menu">
+            <i class="fas fa-bars"></i>
+        </button>
+        <h1>
+            <i class="fas fa-seedling" style="color: var(--brand-primary);"></i>
+            Rhylthyme
+        </h1>
+        <button class="mobile-toolbar-btn" onclick="mobileToggleChat()" aria-label="Chat">
+            <i class="fas fa-comments"></i>
+        </button>
+    </div>
+    <!-- Mobile overlay backdrop -->
+    <div id="mobile-overlay" class="mobile-overlay" onclick="mobileCloseAll()"></div>
     <div class="flex h-full">
         <!-- Collapsible Sidebar -->
         <aside id="sidebar" class="sidebar bg-white shadow-lg h-full overflow-y-auto relative flex-shrink-0">
@@ -502,7 +680,10 @@ MAIN_PAGE = '''
                             <a href="#" onclick="runPrompt('Import a chicken curry recipe from TheMealDB and create a cooking schedule'); return false;" class="example-link">
                                 <i class="fas fa-utensils mr-2"></i>Nutty Chicken Curry (TheMealDB)
                             </a>
-                            <a href="#" onclick="runPrompt('Import the RNA Extraction with Trizol protocol from protocols.io and create a lab schedule'); return false;" class="example-link">
+                            <a href="#" onclick="runPrompt('Search Spoonacular for beef stew and create a cooking schedule'); return false;" class="example-link">
+                                <i class="fas fa-pepper-hot mr-2"></i>Beef Stew (Spoonacular)
+                            </a>
+                            <a href="#" onclick="runPrompt('Import the RNA Extraction with Trizol protocol from protocols.io (protocol ID bc76izre) and create a lab schedule'); return false;" class="example-link">
                                 <i class="fas fa-flask mr-2"></i>RNA Extraction with Trizol (protocols.io)
                             </a>
                         </div>
@@ -621,6 +802,11 @@ MAIN_PAGE = '''
         }
 
         function runPrompt(text) {
+            mobileCloseAll();
+            // On mobile, open chat panel for the prompt
+            if (window.innerWidth <= 768) {
+                setTimeout(() => mobileToggleChat(), 100);
+            }
             const chatInput = document.getElementById('chat-input');
             chatInput.value = text;
             sendChatMessage();
@@ -744,6 +930,7 @@ MAIN_PAGE = '''
         }
 
         async function loadExample(name) {
+            mobileCloseAll();
             showLoading(true);
 
             try {
@@ -814,6 +1001,37 @@ MAIN_PAGE = '''
             }
         }
 
+        // Mobile panel functions
+        function mobileToggleSidebar() {
+            const overlay = document.getElementById('mobile-overlay');
+            const wasOpen = sidebar.classList.contains('mobile-open');
+            mobileCloseAll();
+            if (!wasOpen) {
+                sidebar.classList.remove('collapsed');
+                sidebar.classList.add('mobile-open');
+                overlay.classList.add('active');
+            }
+        }
+
+        function mobileToggleChat() {
+            const overlay = document.getElementById('mobile-overlay');
+            const wasOpen = chatPanel.classList.contains('mobile-open');
+            mobileCloseAll();
+            if (!wasOpen) {
+                chatPanel.classList.remove('collapsed');
+                chatPanel.classList.add('mobile-open');
+                overlay.classList.add('active');
+                document.getElementById('chat-input').focus();
+            }
+        }
+
+        function mobileCloseAll() {
+            const overlay = document.getElementById('mobile-overlay');
+            sidebar.classList.remove('mobile-open');
+            chatPanel.classList.remove('mobile-open');
+            overlay.classList.remove('active');
+        }
+
         function addChatMessage(content, type) {
             const msgDiv = document.createElement('div');
             msgDiv.className = `chat-message ${type}`;
@@ -879,10 +1097,10 @@ MAIN_PAGE = '''
 
                     const visualizeBtn = document.createElement('button');
                     visualizeBtn.className = 'mt-2 px-3 py-1 text-white text-sm rounded';
-                    visualizeBtn.style.cssText = 'background: var(--brand-primary);';
-                    visualizeBtn.onmouseover = () => visualizeBtn.style.background = 'var(--brand-primary-hover)';
-                    visualizeBtn.onmouseout = () => visualizeBtn.style.background = 'var(--brand-primary)';
-                    visualizeBtn.textContent = 'Visualize Program';
+                    visualizeBtn.style.cssText = 'background: #4a76a8;';
+                    visualizeBtn.onmouseover = () => visualizeBtn.style.background = '#3d6490';
+                    visualizeBtn.onmouseout = () => visualizeBtn.style.background = '#4a76a8';
+                    visualizeBtn.innerHTML = '<i class="fas fa-chart-gantt" style="margin-right:5px;"></i>Visualize Program';
                     visualizeBtn.onclick = () => visualizeGeneratedProgram(data.program);
                     chatMessages.lastChild.appendChild(document.createElement('br'));
                     chatMessages.lastChild.appendChild(visualizeBtn);
@@ -895,12 +1113,12 @@ MAIN_PAGE = '''
                     if (data.response && data.response.toLowerCase().includes('resource constraint')) {
                         const confirmBtn = document.createElement('button');
                         confirmBtn.className = 'mt-2 px-3 py-1 text-white text-sm rounded';
-                        confirmBtn.style.cssText = 'background: var(--brand-primary);';
-                        confirmBtn.onmouseover = () => confirmBtn.style.background = 'var(--brand-primary-hover)';
-                        confirmBtn.onmouseout = () => confirmBtn.style.background = 'var(--brand-primary)';
+                        confirmBtn.style.cssText = 'background: #4a76a8;';
+                        confirmBtn.onmouseover = () => confirmBtn.style.background = '#3d6490';
+                        confirmBtn.onmouseout = () => confirmBtn.style.background = '#4a76a8';
                         confirmBtn.innerHTML = '<i class="fas fa-check mr-1"></i> Looks Good - Generate';
                         confirmBtn.onclick = () => {
-                            chatInput.value = 'Looks good, generate the visualization';
+                            chatInput.value = 'Looks good, generate the program';
                             sendChatMessage();
                         };
                         chatMessages.lastChild.appendChild(document.createElement('br'));
@@ -1049,28 +1267,31 @@ def api_load_url():
 
 @app.route('/api/example/<name>')
 def api_load_example(name):
-    # Find example file
-    examples_dir = Path(__file__).parent.parent.parent.parent / 'rhylthyme-examples' / 'programs'
+    # Search multiple locations for examples (local dev vs Vercel)
+    candidates = [
+        Path(__file__).parent.parent.parent.parent / 'rhylthyme-examples' / 'programs',  # monorepo dev
+        Path(__file__).parent.parent.parent / 'examples',  # src-relative
+        Path(__file__).parent.parent.parent.parent / 'examples',  # project root
+    ]
 
-    for ext in ['.json', '.yaml', '.yml']:
-        example_path = examples_dir / f'{name}{ext}'
-        if example_path.exists():
-            try:
-                with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as out:
-                    output_path = out.name
+    for examples_dir in candidates:
+        for ext in ['.json', '.yaml', '.yml']:
+            example_path = examples_dir / f'{name}{ext}'
+            if example_path.exists():
+                try:
+                    with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False) as out:
+                        output_path = out.name
 
-                generate_dag_visualization(str(example_path), output_path, open_browser=False)
+                    generate_dag_visualization(str(example_path), output_path, open_browser=False)
 
-                # Read the generated HTML
-                with open(output_path, 'r') as f:
-                    html_content = f.read()
+                    with open(output_path, 'r') as f:
+                        html_content = f.read()
 
-                # Clean up
-                os.unlink(output_path)
+                    os.unlink(output_path)
 
-                return html_content, 200, {'Content-Type': 'text/html'}
-            except Exception as e:
-                return jsonify({'error': f'Error: {str(e)}'}), 500
+                    return html_content, 200, {'Content-Type': 'text/html'}
+                except Exception as e:
+                    return jsonify({'error': f'Error: {str(e)}'}), 500
 
     return jsonify({'error': f'Example not found: {name}'}), 404
 
@@ -1302,6 +1523,14 @@ Example user requests that REQUIRE using TheMealDB:
 - "Get a random meal" → Use action="random" on TheMealDB
 - Any mention of cooking, recipes, meals, or food → Use TheMealDB
 
+### Spoonacular (Recipes with Rich Data)
+Spoonacular provides detailed recipe data including nutrition, equipment, and step-by-step timing. Use when:
+- Users specifically request Spoonacular recipes
+- Users want detailed equipment or nutrition information with their recipe
+- Use import_from_source with source="spoonacular" and action="search" to find recipes
+- Use action="import" with the recipe ID to get the full recipe
+- Use action="random" for a random recipe
+
 ### Protocols.io (Laboratory Protocols)
 For laboratory protocols (requires API token). Use when users mention:
 - Lab protocols, experiments, scientific procedures
@@ -1321,19 +1550,19 @@ ALWAYS be explicit that you are using TheMealDB as the source."""
 # Tool definition for importing from external sources
 IMPORT_TOOL = {
     "name": "import_from_source",
-    "description": "Import a program from external sources like TheMealDB (recipes) or protocols.io (lab protocols). Use 'search' action to find items, or 'import' action to import a specific URL/ID.",
+    "description": "Import a program from external sources like TheMealDB (recipes), Spoonacular (recipes with nutrition/equipment data), or protocols.io (lab protocols). Use 'search' action to find items, or 'import' action to import a specific URL/ID.",
     "input_schema": {
         "type": "object",
         "properties": {
             "source": {
                 "type": "string",
-                "enum": ["themealdb", "protocolsio"],
+                "enum": ["themealdb", "protocolsio", "spoonacular"],
                 "description": "The source to import from"
             },
             "action": {
                 "type": "string",
                 "enum": ["search", "import", "random"],
-                "description": "Action to perform: 'search' to find items, 'import' to import a specific item, 'random' for a random item (themealdb only)"
+                "description": "Action to perform: 'search' to find items, 'import' to import a specific item, 'random' for a random item (themealdb or spoonacular)"
             },
             "query": {
                 "type": "string",
@@ -1398,6 +1627,14 @@ def handle_import_tool(source: str, action: str, query: str = None):
                         return {"program": result.program}
                     return {"error": result.error}
                 return {"error": "Failed to get random meal"}
+            elif source == "spoonacular":
+                recipe = importer.get_random_recipe()
+                if recipe:
+                    result = importer.import_from_url(str(recipe.get("id")))
+                    if result.success:
+                        return {"program": result.program}
+                    return {"error": result.error}
+                return {"error": "Failed to get random recipe"}
             return {"error": "Random not supported for this source"}
 
         elif action == "import":
@@ -1577,23 +1814,30 @@ def api_import():
 
 @app.route('/api/import/random', methods=['POST'])
 def api_import_random():
-    """Import a random item (TheMealDB only)."""
+    """Import a random item (TheMealDB or Spoonacular)."""
     if not IMPORTERS_AVAILABLE:
         return jsonify({'error': 'Importers not available. Install rhylthyme-importers.'}), 500
 
     data = request.get_json()
     source = data.get('source', 'themealdb') if data else 'themealdb'
 
-    if source != 'themealdb':
-        return jsonify({'error': 'Random import only supported for themealdb'}), 400
+    if source not in ('themealdb', 'spoonacular'):
+        return jsonify({'error': 'Random import only supported for themealdb and spoonacular'}), 400
 
     try:
-        importer = TheMealDBImporter()
-        meal = importer.get_random_meal()
-        if not meal:
-            return jsonify({'error': 'Failed to get random meal'}), 500
+        if source == 'spoonacular':
+            importer = SpoonacularImporter()
+            recipe = importer.get_random_recipe()
+            if not recipe:
+                return jsonify({'error': 'Failed to get random recipe'}), 500
+            result = importer.import_from_url(str(recipe.get('id')))
+        else:
+            importer = TheMealDBImporter()
+            meal = importer.get_random_meal()
+            if not meal:
+                return jsonify({'error': 'Failed to get random meal'}), 500
+            result = importer.import_from_url(meal.get('idMeal'))
 
-        result = importer.import_from_url(meal.get('idMeal'))
         if result.success:
             return jsonify({'program': result.program})
         return jsonify({'error': result.error}), 400
